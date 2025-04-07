@@ -88,6 +88,8 @@ start_of_this_week = today - timedelta(days=today.weekday())
 start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
+df["start_date_local"] = pd.to_datetime(df["start_date_local"])
+
 this_week_runs = df[
     (df["start_date_local"] >= start_of_this_week) &
     (df["start_date_local"] <= today)
@@ -125,4 +127,6 @@ plt.xticks(rotation=45)
 ax.legend()
 st.pyplot(fig)
 
-# --- RAW
+# --- RAW DATA ---
+st.subheader("📝 Recent Runs")
+st.dataframe(df[["name", "start_date_local", "distance_miles", "moving_time", "pace"]])
