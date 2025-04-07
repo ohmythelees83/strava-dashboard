@@ -100,7 +100,7 @@ else:
 # --- THIS WEEK vs LAST WEEK DAYS ---
 utc = pytz.UTC
 today = utc.localize(datetime.today())
-start_of_this_week = utc.localize(datetime(today.year, today.month, today.day) - timedelta(days=today.weekday()))
+start_of_this_week = today - timedelta(days=today.weekday())
 start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
