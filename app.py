@@ -105,6 +105,22 @@ last_week_runs = df[
 
 days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
 days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
+# --- PROGRESS vs LAST WEEK at this point in time ---
+
+# Define the cutoff point (today's weekday and time)
+cutoff_day = today.weekday()
+cutoff_time = today.time()
+
+# Get same day and time last week
+comparison_cutoff = start_of_last_week + timedelta(days=cutoff_day, hours=today.hour, minutes=today.minute, seconds=today.second)
+
+# Filter last week’s runs only up to the same point in the week
+last_week_comparable_runs = last_week_runs[last_week_runs["start_date_local"] <= comparison_cutoff]
+
+# Count runs
+runs_this_week_so_far = len(this_week_runs)
+runs_last_week_by_now = len(last_week_comparable_runs)
+
 
 # --- DISPLAY SECTIONS ---
 st.subheader("\U0001F4C5 Weekly Consistency Tracker")
@@ -115,6 +131,17 @@ with col1:
 
 with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
+
+st.subheader("📊 Week-on-Week Progress")
+
+col3, col4 = st.columns(2)
+
+with col3:
+    st.metric(label="🏃 Runs So Far This Week", value=f"{runs_this_week_so_far}")
+
+with col4:
+    st.metric(label="📅 Same Time Last Week", value=f"{runs_last_week_by_now}")
+
 
 # --- CHART ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart")
