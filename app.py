@@ -21,9 +21,16 @@ def get_access_token():
         'grant_type': 'refresh_token',
         'refresh_token': REFRESH_TOKEN
     })
-    return response.json()["access_token"]
 
-access_token = get_access_token()
+    data = response.json()
+
+    if "access_token" in data:
+        return data["access_token"]
+    else:
+        st.error("❌ Failed to get access token from Strava:")
+        st.json(data)
+        st.stop()
+
 
 # --- FETCH ACTIVITIES ---
 def fetch_strava_data(access_token, max_activities=200):
