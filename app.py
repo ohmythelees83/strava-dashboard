@@ -103,6 +103,14 @@ last_week_runs = df[
     (df["start_date_local"] <= end_of_last_week)
 ]
 
+st.subheader("🕵️ Debug: Last Week's Runs")
+
+# Show run names and dates for the previous week
+st.dataframe(
+    last_week_runs[["name", "start_date_local", "distance_miles"]].sort_values("start_date_local")
+)
+
+
 days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
 days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
 # --- PROGRESS vs LAST WEEK at this point in time ---
