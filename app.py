@@ -58,7 +58,10 @@ def seconds_to_hhmmss(seconds):
 def speed_to_pace_mile(speed_mps):
     if speed_mps == 0:
         return "00:00"
-    pace_seconds = 160_
+    pace_seconds = 1609.34 / speed_mps
+    minutes = int(pace_seconds // 60)
+    seconds = int(pace_seconds % 60)
+    return f"{minutes:02}:{seconds:02}"
 
 
 today = datetime.today()
