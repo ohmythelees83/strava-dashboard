@@ -103,3 +103,5 @@ for i, date in enumerate(run_dates):
     streak += 1
 
 st.markdown(f"🔥 **Current Streak:** {streak} day(s)")
+
+print[run_dates]
