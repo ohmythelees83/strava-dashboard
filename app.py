@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import pytz
 
+
 # Streamlit page config
 st.set_page_config(page_title="Strava Dashboard", layout="wide")
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
@@ -86,7 +87,7 @@ weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 # --- THIS WEEK vs LAST WEEK DAYS ---
 utc = pytz.UTC
 today = utc.localize(datetime.today())
-start_of_this_week = today - timedelta(days=today.weekday())
+start_of_this_week = utc.localize(datetime(today.year, today.month, today.day) - timedelta(days=today.weekday()))
 start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
