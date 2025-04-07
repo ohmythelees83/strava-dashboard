@@ -29,7 +29,7 @@ def get_access_token():
     else:
         st.error("\u274C Failed to get access token from Strava:")
         st.json(data)
-        print("STRAVA ERROR RESPONSE:", data)  # Also print to logs
+        print("STRAVA ERROR RESPONSE:", data)
         st.stop()
 
 access_token = get_access_token()
@@ -57,7 +57,7 @@ def fetch_strava_data(access_token, max_activities=200):
 df = fetch_strava_data(access_token)
 
 # --- CLEAN + FORMAT ---
-df["start_date_local"] = pd.to_datetime(df["start_date_local"])
+df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
 df["week_start"] = df["start_date_local"].dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
 
@@ -88,7 +88,8 @@ start_of_this_week = today - timedelta(days=today.weekday())
 start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
-df["start_date_local"] = pd.to_datetime(df["start_date_local"])
+# Ensure datetime format again just before filtering
+df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
 
 this_week_runs = df[
     (df["start_date_local"] >= start_of_this_week) &
@@ -128,5 +129,5 @@ ax.legend()
 st.pyplot(fig)
 
 # --- RAW DATA ---
-st.subheader("📝 Recent Runs")
+st.subheader("\U0001F4DD Recent Runs")
 st.dataframe(df[["name", "start_date_local", "distance_miles", "moving_time", "pace"]])
