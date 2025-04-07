@@ -38,8 +38,10 @@ def fetch_strava_data(access_token, max_activities=200):
         df = df[df["type"].isin(["Run", "VirtualRun"])]
         return df
     else:
-        st.error("Failed to fetch activities. Check your credentials or permissions.")
+        st.error("❌ Failed to fetch activities:")
+        st.json(activities)  # 🔍 this will show the exact response from Strava
         st.stop()
+
 
 df = fetch_strava_data(access_token)
 
