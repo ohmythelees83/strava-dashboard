@@ -84,6 +84,13 @@ weekly_mileage = df.groupby("week_start")["distance_miles"].sum().reset_index()
 weekly_mileage.columns = ["Week Starting", "Total Miles"]
 weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 
+# --- THIS WEEK vs LAST WEEK DAYS ---
+utc = pytz.UTC
+today = utc.localize(datetime.today())
+start_of_this_week = today - timedelta(days=today.weekday())
+start_of_last_week = start_of_this_week - timedelta(days=7)
+end_of_last_week = start_of_this_week - timedelta(seconds=1)
+
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 # Use only the most recent 4 complete weeks (excluding this week)
 completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week]
@@ -95,14 +102,6 @@ if not last_4_weeks.empty:
 else:
     avg_mileage = 0
     suggested_mileage = 0
-
-
-# --- THIS WEEK vs LAST WEEK DAYS ---
-utc = pytz.UTC
-today = utc.localize(datetime.today())
-start_of_this_week = today - timedelta(days=today.weekday())
-start_of_last_week = start_of_this_week - timedelta(days=7)
-end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # Ensure datetime format again just before filtering
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
