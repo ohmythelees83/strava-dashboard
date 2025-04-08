@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 import math
 import plotly.express as px
+from datetime import timezone
 
 # Streamlit page config
 st.set_page_config(page_title="Strava Dashboard", layout="wide")
@@ -117,7 +118,7 @@ else:
 # --- THIS WEEK vs LAST WEEK DAYS ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
 
-today = datetime.utcnow()
+today = datetime.now(timezone.utc).replace(tzinfo=None)
 start_of_this_week = today - timedelta(days=today.weekday())
 start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
