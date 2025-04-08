@@ -93,17 +93,23 @@ start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
-# Use only the most recent 4 complete weeks (excluding this week)
+# Make sure 'Week Starting' column is in datetime (naive)
+weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
 
-# Remove timezone from current week's start to match weekly_mileage dtype
-start_of_this_week_naive = start_of_this_week.replace(tzinfo=None)
+# Set start of this week as naive datetime
+start_of_this_week_naive = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=datetime.utcnow().weekday())
 
-# Exclude current week, sort by week in ascending order
+# Exclude current week
 completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week_naive]
 
 # Get the latest 4 complete weeks
 last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
 
+# Show which weeks are being used
+st.write("✅ Weeks used in suggested mileage (excluding current):")
+st.dataframe(last_4_weeks[["Week Starting", "Total Miles"]])
+
+# Calculate average + suggested target
 if not last_4_weeks.empty:
     avg_mileage = last_4_weeks["Total Miles"].mean()
     suggested_mileage = math.ceil(avg_mileage * 1.15)
@@ -111,9 +117,6 @@ else:
     avg_mileage = 0
     suggested_mileage = 0
 
-# Show what weeks are used
-st.write("✅ Weeks used in suggested mileage (excluding current):")
-st.write(last_4_weeks[["Week Starting", "Total Miles"]])
 
 # --- THIS WEEK vs LAST WEEK DAYS ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
