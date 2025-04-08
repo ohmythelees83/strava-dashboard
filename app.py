@@ -133,8 +133,6 @@ this_week_runs = df[
     (df["start_date_local"] >= start_of_this_week) &
     (df["start_date_local"] <= today)
 ]
-st.write("📅 Runs counted in *last week* total:")
-st.dataframe(last_week_runs[["name", "start_date_local", "distance_miles"]])
 
 days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
 days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
