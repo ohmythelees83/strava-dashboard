@@ -118,6 +118,16 @@ last_week_runs = df[
 days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
 days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
 
+# --- SMART RECOMMENDATION METRICS ---
+st.subheader("\U0001F4A1 Suggested Mileage")
+col5, col6 = st.columns(2)
+
+with col5:
+    st.metric(label="\U0001F4CA 4-Week Average", value=f"{avg_mileage:.2f} miles")
+
+with col6:
+    st.metric(label="\U0001F680 Next Week Target (+15%)", value=f"{suggested_mileage:.2f} miles")
+
 # --- DISPLAY SECTIONS ---
 st.subheader("\U0001F4C5 Weekly Consistency Tracker")
 col1, col2 = st.columns(2)
@@ -141,16 +151,6 @@ ax.grid(True)
 plt.xticks(rotation=45)
 ax.legend()
 st.pyplot(fig)
-
-# --- SMART RECOMMENDATION METRICS ---
-st.subheader("\U0001F4A1 Suggested Mileage")
-col5, col6 = st.columns(2)
-
-with col5:
-    st.metric(label="\U0001F4CA 4-Week Average", value=f"{avg_mileage:.2f} miles")
-
-with col6:
-    st.metric(label="\U0001F680 Next Week Target (+15%)", value=f"{suggested_mileage:.2f} miles")
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
