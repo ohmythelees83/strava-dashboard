@@ -142,6 +142,7 @@ with col6:
 # Keep only the last 10 weeks of weekly mileage
 weekly_mileage_trimmed = weekly_mileage.tail(10)
 
+
 # --- WEEKLY MILEAGE CHART ---
 st.subheader("📈 Weekly Mileage Chart")
 
@@ -153,9 +154,8 @@ ax.plot(
     weekly_mileage_trimmed["Week Starting"],
     weekly_mileage_trimmed["Total Miles"],
     marker='o',
-    label='Weekly Mileage',
-    ax.axhline(y=20, color='red', linestyle='--', label='20mi Goal')
-
+    label='Weekly Mileage'
+)
 ax.set_title("Weekly Running Mileage - Last 10 Weeks")
 ax.set_xlabel("Week Starting")
 ax.set_ylabel("Miles")
@@ -163,6 +163,8 @@ ax.grid(True)
 plt.xticks(rotation=45)
 ax.legend()
 st.pyplot(fig)
+
+
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
