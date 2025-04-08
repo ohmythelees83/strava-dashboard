@@ -95,8 +95,19 @@ end_of_last_week = start_of_this_week - timedelta(seconds=1)
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 # Use only the most recent 4 complete weeks (excluding this week)
 
-completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week.replace(tzinfo=None)]
-last_4_weeks = completed_weeks.tail(4)
+# Remove timezone from current week's start to match weekly_mileage dtype
+start_of_this_week_naive = start_of_this_week.replace(tzinfo=None)
+
+# Exclude current week, sort by week in ascending order
+completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week_naive]
+
+# Get the latest 4 complete weeks
+last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
+
+# Show what weeks are used
+st.write("✅ Weeks used in suggested mileage (excluding current):")
+st.write(last_4_weeks[["Week Starting", "Total Miles"]])
+
 
 st.write("✅ Weeks used in suggested mileage:")
 st.write(last_4_weeks[["Week Starting", "Total Miles"]])
