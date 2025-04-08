@@ -105,10 +105,6 @@ completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this
 # Get the latest 4 complete weeks
 last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
 
-# Show which weeks are being used
-st.write("✅ Weeks used in suggested mileage (excluding current):")
-st.dataframe(last_4_weeks[["Week Starting", "Total Miles"]])
-
 # Calculate average + suggested target
 if not last_4_weeks.empty:
     avg_mileage = last_4_weeks["Total Miles"].mean()
