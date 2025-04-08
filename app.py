@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import pytz
 import math
+import plotly.express as px
 
 # Streamlit page config
 st.set_page_config(page_title="Strava Dashboard", layout="wide")
@@ -143,37 +144,44 @@ with col6:
 weekly_mileage_trimmed = weekly_mileage.tail(10)
 
 
-# --- WEEKLY MILEAGE CHART ---
-st.subheader("📈 Weekly Mileage Chart")
+# --- WEEKLY MILEAGE CHART (Plotly) ---
+st.subheader("📈 Weekly Mileage Chart (Interactive)")
 
-# Trim to last 10 weeks
-weekly_mileage_trimmed = weekly_mileage.tail(10)
-
-fig, ax = plt.subplots()
-
-# Line plot of mileage
-ax.plot(
-    weekly_mileage_trimmed["Week Starting"],
-    weekly_mileage_trimmed["Total Miles"],
-    marker='o',
-    label='Weekly Mileage'
+fig = px.line(
+    weekly_mileage_trimmed,
+    x="Week Starting",
+    y="Total Miles",
+    markers=True,
+    title="Weekly Running Mileage - Last 10 Weeks",
+    labels={"Total Miles": "Miles"},
+    hover_data={"Total Miles": True, "Week Starting": True}
 )
 
-# Goal lines
-ax.axhline(y=20, color='red', linestyle='--', label='20mi Goal')
-ax.axhline(y=suggested_mileage, color='green', linestyle='--', label='Target for Next Week')
+# Add suggested mileage as a horizontal line
+fig.add_hline(
+    y=suggested_mileage,
+    line_dash="dash",
+    line_color="green",
+    annotation_text=f"Next Week Target: {suggested_mileage}mi",
+    annotation_position="top left"
+)
 
-# Chart styling
-ax.set_title("Weekly Running Mileage - Last 10 Weeks")
-ax.set_xlabel("Week Starting")
-ax.set_ylabel("Miles")
-ax.grid(True)
-plt.xticks(rotation=45)
-ax.legend()
-st.pyplot(fig)
+# Optional: static 20mi line
+fig.add_hline(
+    y=20,
+    line_dash="dot",
+    line_color="red",
+    annotation_text="Static 20mi Goal",
+    annotation_position="top right"
+)
 
+fig.update_layout(
+    xaxis_title="Week Starting",
+    yaxis_title="Total Miles",
+    showlegend=False
+)
 
-
+st.plotly_chart(fig, use_container_width=True)
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
