@@ -60,7 +60,7 @@ def fetch_strava_data(access_token, max_activities=200):
 df = fetch_strava_data(access_token)
 
 # --- CLEAN + FORMAT ---
-df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
+df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
 df["week_start"] = df["start_date_local"].dt.tz_localize(None).dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
 
