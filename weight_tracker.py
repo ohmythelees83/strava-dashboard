@@ -1,32 +1,22 @@
+# weight_tracker.py
 import streamlit as st
 import pandas as pd
-import os
 import datetime
 
-WEIGHT_FILE = "weight_log.csv"
-
 def run_weight_tracker():
-    st.subheader("⚖️ Weight Tracker")
+    st.header("🏋️ Weight Tracker")
 
-    # Input
-    weight = st.number_input("Enter today’s weight (kg):", min_value=0.0, step=0.1)
+    if "weight_log" not in st.session_state:
+        st.session_state.weight_log = []
 
-    if st.button("Save weight"):
-        today = pd.Timestamp.today().strftime("%Y-%m-%d")
-        new_data = pd.DataFrame({"Date": [today], "Weight (kg)": [weight]})
+    weight = st.number_input("Enter today’s weight (kg):", min_value=30.0, max_value=200.0, step=0.1)
 
-        if os.path.exists(WEIGHT_FILE):
-            df = pd.read_csv(WEIGHT_FILE)
-            df = pd.concat([df, new_data], ignore_index=True)
-        else:
-            df = new_data
+    if st.button("Log Weight"):
+        st.session_state.weight_log.append({
+            "date": datetime.date.today(),
+            "weight": weight
+        })
 
-        df.to_csv(WEIGHT_FILE, index=False)
-        st.success("✅ Weight saved!")
-
-    # Show log
-    if os.path.exists(WEIGHT_FILE):
-        df = pd.read_csv(WEIGHT_FILE)
-        df["Date"] = pd.to_datetime(df["Date"])
-        st.line_chart(df.set_index("Date")["Weight (kg)"])
-        st.dataframe(df)
+    if st.session_state.weight_log:
+        df = pd.DataFrame(st.session_state.weight_log)
+        st.line_chart(df.set_index("date")["weight"])
