@@ -154,7 +154,8 @@ ax.plot(
     weekly_mileage_trimmed["Week Starting"],
     weekly_mileage_trimmed["Total Miles"],
     marker='o',
-    label='Weekly Mileage'
+    label='Weekly Mileage',
+    ax.axhline(y=20, color='red', linestyle='--', label='20mi Goal')
 )
 ax.set_title("Weekly Running Mileage - Last 10 Weeks")
 ax.set_xlabel("Week Starting")
