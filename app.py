@@ -139,11 +139,22 @@ with col5:
 with col6:
     st.metric(label="\U0001F680 This Week Target Mileage (+15%)", value=f"{suggested_mileage:.2f} miles")
 
+# Keep only the last 10 weeks of weekly mileage
+weekly_mileage_trimmed = weekly_mileage.tail(10)
+
 # --- WEEKLY MILEAGE CHART ---
-weekly_mileage = weekly_mileage.tail(10)
-st.subheader("\U0001F4C8 Weekly Mileage Chart")
+st.subheader("📈 Weekly Mileage Chart")
+
+# Trim to last 10 weeks
+weekly_mileage_trimmed = weekly_mileage.tail(10)
+
 fig, ax = plt.subplots()
-ax.plot(weekly_mileage_trimmed["Week Starting"], weekly_mileage_trimmed["Total Miles"], marker='o', label='Total Miles')
+ax.plot(
+    weekly_mileage_trimmed["Week Starting"],
+    weekly_mileage_trimmed["Total Miles"],
+    marker='o',
+    label='Weekly Mileage'
+)
 ax.set_title("Weekly Running Mileage - Last 10 Weeks")
 ax.set_xlabel("Week Starting")
 ax.set_ylabel("Miles")
@@ -151,7 +162,6 @@ ax.grid(True)
 plt.xticks(rotation=45)
 ax.legend()
 st.pyplot(fig)
-
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
