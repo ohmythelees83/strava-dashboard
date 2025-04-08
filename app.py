@@ -105,7 +105,7 @@ else:
     suggested_mileage = 0
 
 # --- THIS WEEK vs LAST WEEK DAYS ---
-df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
+df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
 
 this_week_runs = df[
     (df["start_date_local"] >= start_of_this_week) &
