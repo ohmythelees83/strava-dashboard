@@ -140,8 +140,8 @@ with col5:
 with col6:
     st.metric(label="\U0001F680 This Week Target Mileage (+15%)", value=f"{suggested_mileage:.2f} miles")
 
-# Keep only the last 10 weeks of weekly mileage
-weekly_mileage_trimmed = weekly_mileage.tail(10)
+# Keep only the last year  of weekly mileage
+weekly_mileage_trimmed = weekly_mileage.tail(52)
 
 
 # --- WEEKLY MILEAGE CHART (Plotly) ---
@@ -152,7 +152,7 @@ fig = px.line(
     x="Week Starting",
     y="Total Miles",
     markers=True,
-    title="Weekly Running Mileage - Last 10 Weeks",
+    title="Weekly Running Mileage",
     labels={"Total Miles": "Miles"},
     hover_data={"Total Miles": True, "Week Starting": True}
 )
