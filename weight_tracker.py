@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 
-def run_weight_tracker():
+def weight_tracker():
     st.header("🏋️ Weight Tracker")
 
     if "weight_log" not in st.session_state:
