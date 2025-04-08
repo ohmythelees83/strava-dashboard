@@ -109,9 +109,6 @@ st.write("✅ Weeks used in suggested mileage (excluding current):")
 st.write(last_4_weeks[["Week Starting", "Total Miles"]])
 
 
-st.write("✅ Weeks used in suggested mileage:")
-st.write(last_4_weeks[["Week Starting", "Total Miles"]])
-
 if not last_4_weeks.empty:
     avg_mileage = last_4_weeks["Total Miles"].mean()
     suggested_mileage = math.ceil(avg_mileage * 1.15)
