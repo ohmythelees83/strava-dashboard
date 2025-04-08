@@ -4,6 +4,7 @@ import requests
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import pytz
+import math
 
 # Streamlit page config
 st.set_page_config(page_title="Strava Dashboard", layout="wide")
@@ -97,7 +98,7 @@ last_4_weeks = completed_weeks.tail(4)
 
 if not last_4_weeks.empty:
     avg_mileage = last_4_weeks["Total Miles"].mean()
-    suggested_mileage = round(avg_mileage * 1.15, 2)
+    suggested_mileage = math.ceil(avg_mileage * 1.15)
 else:
     avg_mileage = 0
     suggested_mileage = 0
@@ -136,7 +137,7 @@ with col5:
     st.metric(label="\U0001F4CA 4-Week Average", value=f"{avg_mileage:.2f} miles")
 
 with col6:
-    st.metric(label="\U0001F680 Next Week Target (+15%)", value=f"{suggested_mileage:.2f} miles")
+    st.metric(label="\U0001F680 This Week Target Mileage (+15%)", value=f"{suggested_mileage:.2f} miles")
 
 # --- WEEKLY MILEAGE CHART ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart")
