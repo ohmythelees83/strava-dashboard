@@ -7,10 +7,16 @@ import pytz
 import math
 import plotly.express as px
 from datetime import timezone
+from weight_tracker import run_weight_tracker
+
 
 # Streamlit page config
 st.set_page_config(page_title="Strava Dashboard", layout="wide")
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
+
+# --- WEIGHT TRACKING ---
+st.markdown("---")
+run_weight_tracker()
 
 # --- STRAVA CREDENTIALS ---
 CLIENT_ID = st.secrets["CLIENT_ID"]
