@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import os
+import plotly.express as px
 
 DATA_FILE = "weight_log.csv"
 
@@ -35,6 +36,23 @@ def run_weight_tracker():
             st.success("✅ Weight logged!")
 
     # Display chart
-    if not df_weight.empty:
+ if not df_weight.empty:
         df_weight = df_weight.sort_values("date")
-        st.line_chart(df_weight.set_index("date")["weight"])
+
+        fig = px.line(
+            df_weight,
+            x="date",
+            y="weight",
+            markers=True,
+            title="Weight Over Time",
+            labels={"date": "Date", "weight": "Weight (kg)"},
+        )
+
+        fig.update_traces(mode="lines+markers")  # Ensures line and dot
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Weight (kg)",
+            showlegend=False
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
