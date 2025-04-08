@@ -9,7 +9,7 @@ def run_weight_tracker():
     if "weight_log" not in st.session_state:
         st.session_state.weight_log = []
 
-    weight = st.number_input("Enter today’s weight (kg):", min_value=30.0, max_value=200.0, step=0.1)
+weight = st.number_input("Enter today’s weight (kg):", min_value=30.0, max_value=200.0, step=0.1, key="weight_input")
 
     if st.button("Log Weight"):
         st.session_state.weight_log.append({
