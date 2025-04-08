@@ -107,10 +107,10 @@ else:
 # --- THIS WEEK vs LAST WEEK DAYS ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
 
-this_week_runs = df[
-    (df["start_date_local"] >= start_of_this_week) &
-    (df["start_date_local"] <= today)
-]
+today = datetime.utcnow()
+start_of_this_week = today - timedelta(days=today.weekday())
+start_of_last_week = start_of_this_week - timedelta(days=7)
+end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 last_week_runs = df[
     (df["start_date_local"] >= start_of_last_week) &
