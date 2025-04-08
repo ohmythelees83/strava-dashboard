@@ -94,6 +94,10 @@ end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 # Use only the most recent 4 complete weeks (excluding this week)
+
+st.write("✅ Weeks used in suggested mileage:")
+st.write(last_4_weeks[["Week Starting", "Total Miles"]])
+
 completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week.replace(tzinfo=None)]
 last_4_weeks = completed_weeks.tail(4)
 
