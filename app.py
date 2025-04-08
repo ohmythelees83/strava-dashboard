@@ -15,6 +15,13 @@ st.set_page_config(page_title="Strava Dashboard", layout="wide")
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 
 # --- WEIGHT TRACKING ---
+st.markdown("### 🧪 Debug: Running weight tracker...")
+try:
+    run_weight_tracker()
+except Exception as e:
+    st.error(f"❌ Error loading weight tracker: {e}")
+
+
 st.markdown("---")
 run_weight_tracker()
 
