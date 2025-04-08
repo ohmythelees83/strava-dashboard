@@ -104,17 +104,16 @@ completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this
 # Get the latest 4 complete weeks
 last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
 
-# Show what weeks are used
-st.write("✅ Weeks used in suggested mileage (excluding current):")
-st.write(last_4_weeks[["Week Starting", "Total Miles"]])
-
-
 if not last_4_weeks.empty:
     avg_mileage = last_4_weeks["Total Miles"].mean()
     suggested_mileage = math.ceil(avg_mileage * 1.15)
 else:
     avg_mileage = 0
     suggested_mileage = 0
+
+# Show what weeks are used
+st.write("✅ Weeks used in suggested mileage (excluding current):")
+st.write(last_4_weeks[["Week Starting", "Total Miles"]])
 
 # --- THIS WEEK vs LAST WEEK DAYS ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
