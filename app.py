@@ -139,6 +139,8 @@ with col5:
 with col6:
     st.metric(label="\U0001F680 This Week Target Mileage (+15%)", value=f"{suggested_mileage:.2f} miles")
 
+weekly_mileage = weekly_mileage.tail(10)
+
 # --- WEEKLY MILEAGE CHART ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart")
 fig, ax = plt.subplots()
