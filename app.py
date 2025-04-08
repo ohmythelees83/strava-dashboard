@@ -117,6 +117,14 @@ last_week_runs = df[
     (df["start_date_local"] <= end_of_last_week)
 ]
 
+# DEBUG: Print the run dates and current comparison range
+st.write("First 5 run timestamps:")
+st.write(df["start_date_local"].head())
+
+st.write("Start of this week:", start_of_this_week)
+st.write("Now (today):", today)
+
+
 this_week_runs = df[
     (df["start_date_local"] >= start_of_this_week) &
     (df["start_date_local"] <= today)
