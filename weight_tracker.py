@@ -34,3 +34,4 @@ def run_weight_tracker():
         df = df.sort_values("date")
         st.line_chart(df.set_index("date")["weight"])
         st.dataframe(df)
+    
