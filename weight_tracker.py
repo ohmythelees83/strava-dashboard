@@ -1,42 +1,27 @@
 import streamlit as st
 import pandas as pd
 import datetime
-import os
 import plotly.express as px
-
-DATA_FILE = "weight_log.csv"
-
-def load_weight_data():
-    if os.path.exists(DATA_FILE):
-        return pd.read_csv(DATA_FILE, parse_dates=["date"])
-    else:
-        return pd.DataFrame(columns=["date", "weight"])
-
-def save_weight_data(df):
-    df.to_csv(DATA_FILE, index=False)
 
 def run_weight_tracker():
     st.header("⚖️ Weight Tracker")
 
-    # Load existing data
-    df_weight = load_weight_data()
+    # Initialize the weight log
+    if "weight_log" not in st.session_state:
+        st.session_state.weight_log = []
 
-    # Input
+    # Unique key added here
     weight = st.number_input("Enter today’s weight (kg):", min_value=30.0, max_value=200.0, step=0.1, key="weight_input")
 
     if st.button("Log Weight"):
-        today = pd.to_datetime(datetime.date.today())
+        st.session_state.weight_log.append({
+            "date": datetime.date.today(),
+            "weight": weight
+        })
 
-        if today in df_weight["date"].values:
-            st.warning("You've already logged weight for today.")
-        else:
-            new_entry = pd.DataFrame({"date": [today], "weight": [weight]})
-            df_weight = pd.concat([df_weight, new_entry], ignore_index=True)
-            save_weight_data(df_weight)
-            st.success("✅ Weight logged!")
-
-    # Display chart
- if not df_weight.empty:
+    # Display weight chart if there is data
+    if st.session_state.weight_log:
+        df_weight = pd.DataFrame(st.session_state.weight_log)
         df_weight = df_weight.sort_values("date")
 
         fig = px.line(
@@ -45,10 +30,10 @@ def run_weight_tracker():
             y="weight",
             markers=True,
             title="Weight Over Time",
-            labels={"date": "Date", "weight": "Weight (kg)"},
+            labels={"date": "Date", "weight": "Weight (kg)"}
         )
 
-        fig.update_traces(mode="lines+markers")  # Ensures line and dot
+        fig.update_traces(mode="lines+markers")
         fig.update_layout(
             xaxis_title="Date",
             yaxis_title="Weight (kg)",
