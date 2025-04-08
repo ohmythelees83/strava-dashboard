@@ -17,7 +17,7 @@ st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 # --- WEIGHT TRACKING ---
 st.markdown("### 🧪 Debug: Running weight tracker...")
 try:
-    run_weight_tracker()
+    weight_tracker()
 except Exception as e:
     st.error(f"❌ Error loading weight tracker: {e}")
 
