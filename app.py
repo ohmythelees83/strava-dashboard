@@ -93,7 +93,7 @@ end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 # Use only the most recent 4 complete weeks (excluding this week)
-completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week]
+completed_weeks = weekly_mileage[weekly_mileage["Week Starting"].apply(lambda p: p.to_timestamp()) < start_of_this_week]
 last_4_weeks = completed_weeks.tail(4)
 
 if not last_4_weeks.empty:
