@@ -1,43 +1,33 @@
 import streamlit as st
+import gspread
 import pandas as pd
-import datetime
-import plotly.express as px
+from datetime import datetime
+from google.oauth2 import service_account
 
 def run_weight_tracker():
     st.header("⚖️ Weight Tracker")
 
-    # Initialize the weight log
-    if "weight_log" not in st.session_state:
-        st.session_state.weight_log = []
+    # Auth with service account
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
 
-    # Unique key added here
+    gc = gspread.authorize(credentials)
+    sh = gc.open("WeightTracker")
+    worksheet = sh.worksheet("Weights")
+
     weight = st.number_input("Enter today’s weight (kg):", min_value=30.0, max_value=200.0, step=0.1, key="weight_input")
 
     if st.button("Log Weight"):
-        st.session_state.weight_log.append({
-            "date": datetime.date.today(),
-            "weight": weight
-        })
+        today = datetime.today().strftime("%Y-%m-%d")
+        worksheet.append_row([today, weight])
+        st.success(f"Weight logged for {today}")
 
-    # Display weight chart if there is data
-    if st.session_state.weight_log:
-        df_weight = pd.DataFrame(st.session_state.weight_log)
-        df_weight = df_weight.sort_values("date")
-
-        fig = px.line(
-            df_weight,
-            x="date",
-            y="weight",
-            markers=True,
-            title="Weight Over Time",
-            labels={"date": "Date", "weight": "Weight (kg)"}
-        )
-
-        fig.update_traces(mode="lines+markers")
-        fig.update_layout(
-            xaxis_title="Date",
-            yaxis_title="Weight (kg)",
-            showlegend=False
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+    # Load and plot weights
+    data = worksheet.get_all_records()
+    if data:
+        df = pd.DataFrame(data)
+        df["Date"] = pd.to_datetime(df["Date"])
+        df = df.sort_values("Date")
+        st.line_chart(df.set_index("Date")["Weight"])
