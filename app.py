@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import pytz
 
-
 # Streamlit page config
 st.set_page_config(page_title="Strava Dashboard", layout="wide")
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
@@ -60,7 +59,7 @@ df = fetch_strava_data(access_token)
 
 # --- CLEAN + FORMAT ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
-df["week_start"] = df["start_date_local"].dt.to_period("W").apply(lambda r: r.start_time)
+df["week_start"] = df["start_date_local"].dt.tz_localize(None).dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
 
 # Time and pace formatting
@@ -84,7 +83,7 @@ weekly_mileage = df.groupby("week_start")["distance_miles"].sum().reset_index()
 weekly_mileage.columns = ["Week Starting", "Total Miles"]
 weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 
-# --- THIS WEEK vs LAST WEEK DAYS ---
+# --- DATETIME SETUP ---
 utc = pytz.UTC
 today = utc.localize(datetime.today())
 start_of_this_week = today - timedelta(days=today.weekday())
@@ -93,7 +92,7 @@ end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 # Use only the most recent 4 complete weeks (excluding this week)
-completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week]
+completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < pd.Timestamp(start_of_this_week)]
 last_4_weeks = completed_weeks.tail(4)
 
 if not last_4_weeks.empty:
@@ -103,7 +102,7 @@ else:
     avg_mileage = 0
     suggested_mileage = 0
 
-# Ensure datetime format again just before filtering
+# --- THIS WEEK vs LAST WEEK DAYS ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
 
 this_week_runs = df[
@@ -116,34 +115,10 @@ last_week_runs = df[
     (df["start_date_local"] <= end_of_last_week)
 ]
 
-st.subheader("🕵️ Debug: Last Week's Runs")
-
-# Show run names and dates for the previous week
-st.dataframe(
-    last_week_runs[["name", "start_date_local", "distance_miles"]].sort_values("start_date_local")
-)
-
-
 days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
 days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
-# --- PROGRESS vs LAST WEEK at this point in time ---
 
-# Define the cutoff point (today's weekday and time)
-cutoff_day = today.weekday()
-cutoff_time = today.time()
-
-# Get same day and time last week
-comparison_cutoff = start_of_last_week + timedelta(days=cutoff_day, hours=today.hour, minutes=today.minute, seconds=today.second)
-
-# Filter last week’s runs only up to the same point in the week
-last_week_comparable_runs = last_week_runs[last_week_runs["start_date_local"] <= comparison_cutoff]
-
-# Count runs
-runs_this_week_so_far = len(this_week_runs)
-runs_last_week_by_now = len(last_week_comparable_runs)
-
-
-# --- DISPLAY IN APP SECTIONS ---
+# --- DISPLAY SECTIONS ---
 st.subheader("\U0001F4C5 Weekly Consistency Tracker")
 col1, col2 = st.columns(2)
 
@@ -153,28 +128,7 @@ with col1:
 with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
-st.subheader("📊 Week-on-Week Progress")
-
-col3, col4 = st.columns(2)
-
-with col3:
-    st.metric(label="🏃 Runs So Far This Week", value=f"{runs_this_week_so_far}")
-
-with col4:
-    st.metric(label="📅 Same Time Last Week", value=f"{runs_last_week_by_now}")
-
-st.subheader("🎯 Next Week's Suggested Mileage")
-
-col5, col6 = st.columns(2)
-
-with col5:
-    st.metric(label="📊 4-Week Average", value=f"{avg_mileage:.2f} miles")
-
-with col6:
-    st.metric(label="🚀 Target for Next Week (+15%)", value=f"{suggested_mileage:.2f} miles")
-
-
-# --- CHART ---
+# --- WEEKLY MILEAGE CHART ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart")
 fig, ax = plt.subplots()
 ax.plot(weekly_mileage["Week Starting"], weekly_mileage["Total Miles"], marker='o', label='Total Miles')
@@ -187,6 +141,16 @@ ax.grid(True)
 plt.xticks(rotation=45)
 ax.legend()
 st.pyplot(fig)
+
+# --- SMART RECOMMENDATION METRICS ---
+st.subheader("\U0001F4A1 Suggested Mileage")
+col5, col6 = st.columns(2)
+
+with col5:
+    st.metric(label="\U0001F4CA 4-Week Average", value=f"{avg_mileage:.2f} miles")
+
+with col6:
+    st.metric(label="\U0001F680 Next Week Target (+15%)", value=f"{suggested_mileage:.2f} miles")
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
