@@ -31,3 +31,11 @@ def run_weight_tracker():
         df["Date"] = pd.to_datetime(df["Date"])
         df = df.sort_values("Date")
         st.line_chart(df.set_index
+
+        # --- WEIGHT TRACKING ---
+st.markdown("---")
+try:
+    run_weight_tracker()
+except Exception as e:
+    st.error(f"⚠️ Weight Tracker failed to load: {e}")
+
