@@ -89,10 +89,11 @@ weekly_mileage.columns = ["Week Starting", "Total Miles"]
 weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 
 # --- DATETIME SETUP ---
-today = datetime.now(dt_timezone.utc)
+today = datetime.now(dt_timezone.utc).replace(tzinfo=None)  # <-- make naive
 start_of_this_week = (today - timedelta(days=today.weekday())).replace(tzinfo=None)
 start_of_last_week = (start_of_this_week - timedelta(days=7)).replace(tzinfo=None)
-end_of_last_week = start_of_this_week - timedelta(seconds=1)
+end_of_last_week = (start_of_this_week - timedelta(seconds=1)).replace(tzinfo=None)
+
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
