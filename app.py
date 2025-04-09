@@ -156,14 +156,25 @@ with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
 # --- SMART RECOMMENDATION METRICS ---
-st.subheader("\U0001F4A1 Suggested Mileage")
-col5, col6 = st.columns(2)
+st.subheader("💡 Suggested Mileage")
+col1, col2, col3, col4 = st.columns(4)
 
-with col5:
-    st.metric(label="\U0001F4CA 4-Week Average", value=f"{avg_mileage:.2f} miles")
+# Total mileage this week
+this_week_total_miles = this_week_runs["distance_miles"].sum()
+remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
 
-with col6:
-    st.metric(label="\U0001F680 This Week Target Mileage (+15%)", value=f"{suggested_mileage:.2f} miles")
+with col1:
+    st.metric(label="📊 4-Week Average", value=f"{avg_mileage:.2f} mi")
+
+with col2:
+    st.metric(label="🎯 This Week Target", value=f"{suggested_mileage:.2f} mi")
+
+with col3:
+    st.metric(label="🏃 Total This Week", value=f"{this_week_total_miles:.2f} mi")
+
+with col4:
+    st.metric(label="📉 Remaining to Target", value=f"{remaining_miles:.2f} mi")
+
 
 # Keep only the last year  of weekly mileage
 weekly_mileage_trimmed = weekly_mileage.tail(52)
