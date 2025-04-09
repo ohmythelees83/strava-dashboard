@@ -30,7 +30,7 @@ def run_weight_tracker():
         df = pd.DataFrame(data)
         df["Date"] = pd.to_datetime(df["Date"])
         df = df.sort_values("Date")
-        st.line_chart(df.set_index
+        st.line_chart(df.set_index)
 
         # --- WEIGHT TRACKING ---
 st.markdown("---")
