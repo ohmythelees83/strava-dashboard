@@ -32,6 +32,15 @@ def run_weight_tracker():
         df = pd.DataFrame(data)
         df["Date"] = pd.to_datetime(df["Date"])
         df = df.sort_values("Date")
-        st.line_chart(df.set_index("Date")["Weight"])
+
+        import plotly.express as px
+        fig = px.line(
+            df,
+            x="Date",
+            y="Weight",
+            title="📉 Weight Over Time",
+            markers=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 
