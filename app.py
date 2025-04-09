@@ -17,7 +17,7 @@ st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 # --- WEIGHT TRACKING ---
 
 st.markdown("---")
-#run_weight_tracker()
+run_weight_tracker()
 
 # --- STRAVA CREDENTIALS ---
 CLIENT_ID = st.secrets["CLIENT_ID"]
