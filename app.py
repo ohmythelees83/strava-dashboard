@@ -159,9 +159,19 @@ with col2:
 st.subheader("💡 Suggested Mileage")
 col1, col2, col3, col4 = st.columns(4)
 
-# Total mileage this week
+# Calculate current week stats
 this_week_total_miles = this_week_runs["distance_miles"].sum()
 remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
+percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
+above_avg_pct = ((this_week_total_miles - avg_mileage) / avg_mileage) * 100 if avg_mileage else 0
+
+# Colour logic
+if above_avg_pct > 30:
+    color = "red"
+elif above_avg_pct > 20:
+    color = "green"
+else:
+    color = "default"
 
 with col1:
     st.metric(label="📊 4-Week Average", value=f"{avg_mileage:.2f} mi")
@@ -174,6 +184,20 @@ with col3:
 
 with col4:
     st.metric(label="📉 Remaining to Target", value=f"{remaining_miles:.2f} mi")
+
+# Progress bar
+st.markdown("**Progress Toward Weekly Goal**")
+progress_text = f"{percent_complete:.0f}% of {suggested_mileage:.0f} mi goal"
+
+if color == "red":
+    st.error(progress_text)
+elif color == "green":
+    st.success(progress_text)
+else:
+    st.info(progress_text)
+
+st.progress(int(percent_complete))
+
 
 
 # Keep only the last year  of weekly mileage
