@@ -208,12 +208,6 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-        # --- WEIGHT TRACKING ---
-st.markdown("---")
-try:
-    run_weight_tracker()
-except Exception as e:
-    st.error(f"⚠️ Weight Tracker failed to load: {e}")
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
