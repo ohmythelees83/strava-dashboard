@@ -156,38 +156,47 @@ with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
 # --- SMART RECOMMENDATION METRICS ---
-st.subheader("💡 Suggested Mileage")
+st.subheader("💡 Weekly Mileage Overview")
 col1, col2, col3, col4 = st.columns(4)
 
-# Calculate current week stats
+st.subheader("📦 Weekly Mileage Overview")
+
+# --- Calculate Progress ---
 this_week_total_miles = this_week_runs["distance_miles"].sum()
 remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
 percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
 above_avg_pct = ((this_week_total_miles - avg_mileage) / avg_mileage) * 100 if avg_mileage else 0
 
-# Colour logic
+# --- Define Colour Logic ---
 if above_avg_pct > 30:
-    color = "red"
+    card_color = "#ffcccc"  # light red
+    emoji = "🔴"
 elif above_avg_pct > 20:
-    color = "green"
+    card_color = "#d4edda"  # light green
+    emoji = "🟢"
 else:
-    color = "default"
+    card_color = "#f8f9fa"  # neutral
 
-with col1:
-    st.metric(label="📊 4-Week Average", value=f"{avg_mileage:.2f} mi")
+# --- Layout ---
+st.markdown(
+    f"""
+    <div style="background-color: {card_color}; padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <h4 style="margin-top: 0;">{emoji} Weekly Progress Summary</h4>
+        <ul style="list-style: none; padding-left: 0; font-size: 16px;">
+            <li><strong>4-Week Avg:</strong> {avg_mileage:.2f} mi</li>
+            <li><strong>Target Mileage:</strong> {suggested_mileage:.2f} mi</li>
+            <li><strong>Total This Week:</strong> {this_week_total_miles:.2f} mi</li>
+            <li><strong>Remaining:</strong> {remaining_miles:.2f} mi</li>
+            <li><strong>Progress:</strong> {percent_complete:.0f}%</li>
+        </ul>
+        <div style="margin-top: 10px;">
+            <progress value="{percent_complete}" max="100" style="width: 100%; height: 20px;"></progress>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-with col2:
-    st.metric(label="🎯 This Week Target", value=f"{suggested_mileage:.2f} mi")
-
-with col3:
-    st.metric(label="🏃 Total This Week", value=f"{this_week_total_miles:.2f} mi")
-
-with col4:
-    st.metric(label="📉 Remaining to Target", value=f"{remaining_miles:.2f} mi")
-
-# Progress bar
-st.markdown("**Progress Toward Weekly Goal**")
-progress_text = f"{percent_complete:.0f}% of {suggested_mileage:.0f} mi goal"
 
 if color == "red":
     st.error(progress_text)
