@@ -96,7 +96,7 @@ end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
-start_of_this_week_naive = start_of_this_week.replace(tzinfo=None)
+start_of_this_week_naive = pd.Timestamp(start_of_this_week).tz_localize(None)
 completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week_naive]
 last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
 
