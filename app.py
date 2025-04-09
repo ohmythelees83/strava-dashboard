@@ -3,20 +3,15 @@ st.set_page_config(page_title="Strava Dashboard", layout="wide")
 import pandas as pd
 import requests
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 import pytz
 import math
 import plotly.express as px
-from datetime import timezone
 from weight_tracker import run_weight_tracker
-
-
-# Streamlit page config
 
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 
 # --- WEIGHT TRACKING ---
-
 st.markdown("---")
 run_weight_tracker()
 
@@ -70,10 +65,9 @@ df = fetch_strava_data(access_token)
 
 # --- CLEAN + FORMAT ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
-df["week_start"] = df["start_date_local"].dt.tz_localize(None).dt.to_period("W").apply(lambda r: r.start_time)
+df["week_start"] = df["start_date_local"].dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
 
-# Time and pace formatting
 def seconds_to_hhmmss(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -95,26 +89,17 @@ weekly_mileage.columns = ["Week Starting", "Total Miles"]
 weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 
 # --- DATETIME SETUP ---
-utc = pytz.UTC
-today = utc.localize(datetime.today())
+today = datetime.now(dt_timezone.utc)
 start_of_this_week = today - timedelta(days=today.weekday())
 start_of_last_week = start_of_this_week - timedelta(days=7)
 end_of_last_week = start_of_this_week - timedelta(seconds=1)
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
-# Make sure 'Week Starting' column is in datetime (naive)
 weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
-
-# Set start of this week as naive datetime
-start_of_this_week_naive = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=datetime.utcnow().weekday())
-
-# Exclude current week
+start_of_this_week_naive = start_of_this_week.replace(tzinfo=None)
 completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week_naive]
-
-# Get the latest 4 complete weeks
 last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
 
-# Calculate average + suggested target
 if not last_4_weeks.empty:
     avg_mileage = last_4_weeks["Total Miles"].mean()
     suggested_mileage = math.ceil(avg_mileage * 1.15)
@@ -122,25 +107,9 @@ else:
     avg_mileage = 0
     suggested_mileage = 0
 
-
 # --- THIS WEEK vs LAST WEEK DAYS ---
-df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
-
-today = datetime.now(timezone.utc).replace(tzinfo=None)
-start_of_this_week = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-start_of_last_week = start_of_this_week - timedelta(days=7)
-end_of_last_week = start_of_this_week - timedelta(seconds=1)
-
-
-last_week_runs = df[
-    (df["start_date_local"] >= start_of_last_week) &
-    (df["start_date_local"] <= end_of_last_week)
-]
-
-this_week_runs = df[
-    (df["start_date_local"] >= start_of_this_week) &
-    (df["start_date_local"] <= today)
-]
+last_week_runs = df[(df["start_date_local"] >= start_of_last_week) & (df["start_date_local"] <= end_of_last_week)]
+this_week_runs = df[(df["start_date_local"] >= start_of_this_week) & (df["start_date_local"] <= today)]
 
 days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
 days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
@@ -151,31 +120,26 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.metric(label="\U0001F3C3‍♂️ Days Run This Week", value=f"{days_this_week} / 7")
-
 with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
 # --- SMART RECOMMENDATION METRICS ---
-st.subheader("💡 Weekly Mileage Overview")
-col1, col2, col3, col4 = st.columns(4)
-
-# --- Calculate Progress ---
+st.subheader("\U0001F4A1 Weekly Mileage Overview")
 this_week_total_miles = this_week_runs["distance_miles"].sum()
 remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
 percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
 above_avg_pct = ((this_week_total_miles - avg_mileage) / avg_mileage) * 100 if avg_mileage else 0
 
-# --- Define Colour Logic ---
 if above_avg_pct > 30:
-    card_color = "#ffcccc"  # light red
+    card_color = "#ffcccc"
     emoji = "🔴"
 elif above_avg_pct > 20:
-    card_color = "#d4edda"  # light green
+    card_color = "#d4edda"
     emoji = "🟢"
 else:
-    card_color = "#f8f9fa"  # neutral
+    card_color = "#f8f9fa"
+    emoji = "⚪"
 
-# --- Layout ---
 st.markdown(
     f"""
     <div style="background-color: {card_color}; padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px;">
@@ -195,25 +159,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-if color == "red":
-    st.error(progress_text)
-elif color == "green":
-    st.success(progress_text)
-else:
-    st.info(progress_text)
-
-st.progress(int(percent_complete))
-
-
-
-# Keep only the last year  of weekly mileage
-weekly_mileage_trimmed = weekly_mileage.tail(52)
-
-
 # --- WEEKLY MILEAGE CHART (Plotly) ---
-st.subheader("📈 Weekly Mileage Chart (Interactive)")
-
+st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
+weekly_mileage_trimmed = weekly_mileage.tail(52)
 fig = px.line(
     weekly_mileage_trimmed,
     x="Week Starting",
@@ -224,7 +172,6 @@ fig = px.line(
     hover_data={"Total Miles": True, "Week Starting": True}
 )
 
-# Add suggested mileage as a horizontal line
 fig.add_hline(
     y=suggested_mileage,
     line_dash="dash",
@@ -233,7 +180,6 @@ fig.add_hline(
     annotation_position="top left"
 )
 
-# Optional: static 20mi line
 fig.add_hline(
     y=20,
     line_dash="dot",
@@ -249,7 +195,6 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
