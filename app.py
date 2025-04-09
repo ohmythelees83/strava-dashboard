@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Strava Dashboard", layout="wide")
 import pandas as pd
 import requests
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from weight_tracker import run_weight_tracker
 
 
 # Streamlit page config
-st.set_page_config(page_title="Strava Dashboard", layout="wide")
+
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 
 # --- WEIGHT TRACKING ---
