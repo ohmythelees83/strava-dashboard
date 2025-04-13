@@ -36,7 +36,7 @@ def get_access_token():
     else:
         st.error("\u274C Failed to get access token from Strava:")
         st.json(data)
-        # print("STRAVA ERROR RESPONSE:", data)
+        print("STRAVA ERROR RESPONSE:", data)
         st.stop()
 
 access_token = get_access_token()
@@ -58,7 +58,7 @@ def fetch_strava_data(access_token, max_activities=200):
     else:
         st.error("\u274C Failed to fetch activities:")
         st.json(activities)
-        # print("FETCH ERROR RESPONSE:", activities)
+        print("FETCH ERROR RESPONSE:", activities)
         st.stop()
 
 df = fetch_strava_data(access_token)
@@ -89,10 +89,11 @@ weekly_mileage.columns = ["Week Starting", "Total Miles"]
 weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 
 # --- DATETIME SETUP ---
-today = datetime.now(dt_timezone.utc)
-start_of_this_week = today - timedelta(days=today.weekday())
-start_of_last_week = start_of_this_week - timedelta(days=7)
-end_of_last_week = start_of_this_week - timedelta(seconds=1)
+today = datetime.now(dt_timezone.utc).replace(tzinfo=None)  # <-- make naive
+start_of_this_week = (today - timedelta(days=today.weekday())).replace(tzinfo=None)
+start_of_last_week = (start_of_this_week - timedelta(days=7)).replace(tzinfo=None)
+end_of_last_week = (start_of_this_week - timedelta(seconds=1)).replace(tzinfo=None)
+
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
@@ -124,7 +125,7 @@ with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
 # --- SMART RECOMMENDATION METRICS ---
-st.subheader("\U0001F4A1 Weekly Mileage Overview")
+#st.subheader("\U0001F4A1 Weekly Mileage Overview")
 this_week_total_miles = this_week_runs["distance_miles"].sum()
 remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
 percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
