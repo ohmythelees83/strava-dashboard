@@ -199,4 +199,5 @@ st.plotly_chart(fig, use_container_width=True)
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
+df["start_date_local"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
 st.dataframe(df[["name", "start_date_local", "distance_miles", "moving_time", "pace"]])
