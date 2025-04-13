@@ -11,6 +11,7 @@ from weight_tracker import run_weight_tracker
 import operator
 import gspread
 from google.oauth2 import service_account
+import plotly.graph_objects as go
 
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 
@@ -68,8 +69,13 @@ df = fetch_strava_data(access_token)
 
 # --- CLEAN + FORMAT ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
+df["formatted_date"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
 df["week_start"] = df["start_date_local"].dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
+
+# Ensure clean datetime for merge later
+df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
+
 
 def seconds_to_hhmmss(seconds):
     hours = int(seconds // 3600)
@@ -96,7 +102,6 @@ today = datetime.now(dt_timezone.utc).replace(tzinfo=None)  # <-- make naive
 start_of_this_week = (today - timedelta(days=today.weekday())).replace(tzinfo=None)
 start_of_last_week = (start_of_this_week - timedelta(days=7)).replace(tzinfo=None)
 end_of_last_week = (start_of_this_week - timedelta(seconds=1)).replace(tzinfo=None)
-
 
 # --- SMART WEEKLY MILEAGE RECOMMENDATION ---
 weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
@@ -128,7 +133,6 @@ with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
 # --- SMART RECOMMENDATION METRICS ---
-#st.subheader("\U0001F4A1 Weekly Mileage Overview")
 this_week_total_miles = this_week_runs["distance_miles"].sum()
 remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
 percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
@@ -166,7 +170,6 @@ st.markdown(
 # --- GOALS SECTION ---
 st.subheader("🎯 My Long Term Goal: Place Top Ten in a Centurion 50 mile Ultra within the next 5 years.")
 
-# Connect to Google Sheet to persist goals
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["google_sheets"],
     scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -190,36 +193,25 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
-# Daily mileage summary heatmap
+# --- DAILY MILEAGE HEATMAP ---
 daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
 
-# Limit to last 5 weeks
 end_date = df["start_date_local"].max().date()
 start_date = end_date - timedelta(weeks=5)
-filtered = daily_mileage[(daily_mileage["Date"] >= start_date) & (daily_mileage["Date"] <= end_date)]
 
-# Create an interactive heatmap calendar
-import plotly.graph_objects as go
-
-# Create full date range and merge to ensure all days are represented
-all_days = pd.date_range(start=start_date, end=end_date, freq="D")
-calendar_df = pd.DataFrame({"Date": all_days})
+calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date, freq="D")})
 calendar_df["Week"] = calendar_df["Date"].dt.isocalendar().week
 calendar_df["Weekday"] = calendar_df["Date"].dt.weekday
-calendar_df = calendar_df.merge(filtered, on="Date", how="left").fillna(0)
+calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
 
-# Pivot for heatmap
-pivot = calendar_df.pivot(index="Weekday", columns="Week", values="Miles")
-pivot = pivot.sort_index(ascending=False)
+pivot = calendar_df.pivot(index="Weekday", columns="Week", values="Miles").sort_index(ascending=False)
 
-# Plot
 fig = go.Figure(data=go.Heatmap(
     z=pivot.values,
     x=pivot.columns,
-    y=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][::-1],
+    y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
     colorscale="Greens",
-    hoverongaps=False,
     hovertemplate="Week %{x}<br>%{y}: %{z:.2f} miles<extra></extra>"
 ))
 
@@ -232,9 +224,6 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
-
-
 
 # --- WEEKLY MILEAGE CHART (Plotly) ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
@@ -275,13 +264,9 @@ st.plotly_chart(fig, use_container_width=True)
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
-
 df["start_date_local"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
-
-# Reset the index to be 1-based and rename it to "#"
 df_display = df[["name", "start_date_local", "distance_miles", "moving_time", "pace"]].copy()
 df_display.index = df_display.index + 1
+
 df_display.index.name = "#"
-
 st.dataframe(df_display)
-
