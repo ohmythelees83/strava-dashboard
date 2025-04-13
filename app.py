@@ -160,6 +160,33 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# --- GOALS SECTION ---
+st.subheader("🎯 My Running Goals")
+
+# Connect to Google Sheet to persist goals
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["google_sheets"],
+    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+)
+gc = gspread.authorize(credentials)
+try:
+    sheet = gc.open("WeightTracker").worksheet("Goals")
+    current_goals = sheet.col_values(1)
+except:
+    sheet = gc.open("WeightTracker").add_worksheet(title="Goals", rows="100", cols="1")
+    current_goals = []
+
+with st.expander("✍️ Update My Goals"):
+    new_goals_input = st.text_area("Update your goals (one per line):", value="\n".join(current_goals), height=150)
+    if st.button("Save Goals"):
+        sheet.clear()
+        sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
+        st.success("Goals updated!")
+
+st.markdown("#### 📌 Current Goals")
+for goal in current_goals:
+    st.markdown(f"- {goal}")
+
 # --- WEEKLY MILEAGE CHART (Plotly) ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
 weekly_mileage_trimmed = weekly_mileage.tail(52)
