@@ -250,13 +250,13 @@ weekly_stats = calendar_df.groupby("Week Label").agg(
 ).reset_index()
 
 
-    stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
-    label = f"<b>{week}</b><br>Total Miles: {int(stats.Total_Miles)}<br>Total Runs: {int(stats.Total_Runs)}"
-    fig.add_annotation(
-        x=-0.5, y=y0 + 0.5, text=label, showarrow=False,
-        font=dict(size=13, color="black"), align="right",
-        xanchor="right", yanchor="middle"
-    )
+stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
+label = f"<b>{week}</b><br>Total Miles: {int(stats.Total_Miles)}<br>Total Runs: {int(stats.Total_Runs)}"
+fig.add_annotation(
+    x=-0.5, y=y0 + 0.5, text=label, showarrow=False,
+    font=dict(size=13, color="black"), align="right",
+    xanchor="right", yanchor="middle"
+)
 
 fig.update_xaxes(
     tickvals=[i + 0.5 for i in range(len(days))],
