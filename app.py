@@ -194,7 +194,7 @@ with st.expander("✍️ Update My Goals"):
         st.success("Goals updated!")
 
 # --- DAILY MILEAGE TABLE CALENDAR ---
-daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
+daily_mileage = df.groupby(df["start_date_local"].dt.normalize())["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
 
 end_date = df["start_date_local"].max().date()
