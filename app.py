@@ -164,7 +164,7 @@ st.markdown(
 )
 
 # --- GOALS SECTION ---
-st.subheader("🎯 My Running Goals")
+st.subheader("🎯 My Goals")
 
 # Connect to Google Sheet to persist goals
 credentials = service_account.Credentials.from_service_account_info(
