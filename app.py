@@ -197,6 +197,9 @@ with st.expander("✍️ Update My Goals"):
 daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
 
+# Convert to datetime64[ns] to match merge key
+daily_mileage["Date"] = pd.to_datetime(daily_mileage["Date"])
+
 end_date = df["start_date_local"].max().date()
 start_date = end_date - timedelta(weeks=5)
 
@@ -204,6 +207,7 @@ calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date
 calendar_df["Week"] = calendar_df["Date"].dt.isocalendar().week
 calendar_df["Weekday"] = calendar_df["Date"].dt.weekday
 calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
+
 
 pivot = calendar_df.pivot(index="Weekday", columns="Week", values="Miles").sort_index(ascending=False)
 
