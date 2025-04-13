@@ -208,6 +208,8 @@ calendar_df["Week"] = calendar_df["Date"].apply(lambda d: f"{(d - timedelta(days
 pivot = calendar_df.pivot(index="Week", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 pivot = pivot[days_order]
+weeks = pivot.index.tolist()
+days = pivot.columns.tolist()
 
 fig = go.Figure()
 cell_width, cell_height = 1, 1
