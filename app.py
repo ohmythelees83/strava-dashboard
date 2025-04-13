@@ -262,6 +262,25 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+fig = go.Figure(data=go.Heatmap(
+    z=pivot.values,
+    x=pivot.columns,
+    y=pivot.index,
+    colorscale="Greens",
+    hovertemplate="%{y} %{x}: %{z:.2f} miles<extra></extra>"
+))
+
+fig.update_layout(
+    title="📆 Last 5 Weeks - Daily Mileage",
+    xaxis_title="Day of Week",
+    yaxis_title="Week",
+    margin=dict(t=50, l=50, r=50, b=50),
+    height=400
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
 df["start_date_local"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
