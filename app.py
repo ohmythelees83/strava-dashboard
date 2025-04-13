@@ -243,6 +243,13 @@ for i, week in enumerate(weeks):
                 xanchor="center", yanchor="middle"
             )
 
+# Create weekly summary to use in row labels
+weekly_stats = calendar_df.groupby("Week Label").agg(
+    Total_Miles=("Miles", "sum"),
+    Total_Runs=("Miles", lambda x: (x > 0).sum())
+).reset_index()
+
+
     stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
     label = f"<b>{week}</b><br>Total Miles: {int(stats.Total_Miles)}<br>Total Runs: {int(stats.Total_Runs)}"
     fig.add_annotation(
