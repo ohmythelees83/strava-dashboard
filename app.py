@@ -193,36 +193,71 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
-# --- DAILY MILEAGE HEATMAP ---
-daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
-daily_mileage.columns = ["Date", "Miles"]
+import plotly.graph_objects as go
 
-# Ensure datetime type
-daily_mileage["Date"] = pd.to_datetime(daily_mileage["Date"])
+# Get dimensions
+rows = pivot.shape[0]
+cols = pivot.shape[1]
+weeks = pivot.index.tolist()
+days = pivot.columns.tolist()
 
-# Build full date range
-end_date = df["start_date_local"].max().date()
-start_date = end_date - timedelta(weeks=5)
-calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date, freq="D")})
+fig = go.Figure()
 
-# Add week start and end to create week labels
-calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
-calendar_df["Week End"] = calendar_df["Week Start"] + pd.Timedelta(days=6)
-calendar_df["Week Label"] = calendar_df["Week Start"].dt.day.astype(str) + "-" + \
-                            calendar_df["Week End"].dt.strftime("%d %b")
+# Add green squares with annotations
+for i, week in enumerate(weeks):
+    for j, day in enumerate(days):
+        mileage = pivot.loc[week, day]
+        x0 = j
+        x1 = j + 1
+        y0 = rows - i - 1
+        y1 = y0 + 1
 
-# Add weekday name (Mon–Sun)
-calendar_df["Weekday"] = calendar_df["Date"].dt.strftime("%A")
+        # Add rectangle (green square)
+        fig.add_shape(
+            type="rect",
+            x0=x0, y0=y0, x1=x1, y1=y1,
+            line=dict(width=1, color="white"),
+            fillcolor="#3F9C35"
+        )
 
-# Merge in mileage
-calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
+        # Add text annotation
+        fig.add_annotation(
+            x=x0 + 0.5,
+            y=y0 + 0.5,
+            text=f"{mileage:.1f}",
+            showarrow=False,
+            font=dict(color="white", size=12),
+            xanchor="center",
+            yanchor="middle"
+        )
 
-# Pivot so each row is a week and columns are days (Mon–Sun)
-pivot = calendar_df.pivot(index="Week Label", columns="Weekday", values="Miles")
+# Axis config
+fig.update_xaxes(
+    tickvals=[i + 0.5 for i in range(cols)],
+    ticktext=days,
+    showgrid=False,
+    zeroline=False
+)
+fig.update_yaxes(
+    tickvals=[i + 0.5 for i in range(rows)],
+    ticktext=weeks[::-1],  # reverse so most recent week is on top
+    showgrid=False,
+    zeroline=False
+)
 
-# Optional: ensure day order across columns
-weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-pivot = pivot[weekday_order]  # left to right
+fig.update_layout(
+    title="📆 Last 5 Weeks - Daily Mileage",
+    xaxis=dict(showline=False, showticklabels=True),
+    yaxis=dict(showline=False, showticklabels=True),
+    width=700,
+    height=rows * 40 + 100,
+    margin=dict(t=60, l=60, r=30, b=30),
+    plot_bgcolor="white",
+    paper_bgcolor="white"
+)
+
+st.plotly_chart(fig, use_container_width=False)
+
 
 
 # --- WEEKLY MILEAGE CHART (Plotly) ---
