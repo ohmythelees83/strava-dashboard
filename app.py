@@ -98,7 +98,7 @@ weekly_mileage.columns = ["Week Starting", "Total Miles"]
 weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
 
 # --- DATETIME SETUP ---
-today = datetime.now(dt_timezone.utc).replace(tzinfo=None)  # <-- make naive
+today = datetime.now(dt_timezone.utc).replace(tzinfo=None)
 start_of_this_week = (today - timedelta(days=today.weekday())).replace(tzinfo=None)
 start_of_last_week = (start_of_this_week - timedelta(days=7)).replace(tzinfo=None)
 end_of_last_week = (start_of_this_week - timedelta(seconds=1)).replace(tzinfo=None)
@@ -193,27 +193,32 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
-# --- DAILY MILEAGE HEATMAP ---
-import plotly.graph_objects as go
+# --- DAILY MILEAGE TABLE CALENDAR ---
+daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
+daily_mileage.columns = ["Date", "Miles"]
 
-# Get dimensions
-rows = pivot.shape[0]
-cols = pivot.shape[1]
-weeks = pivot.index.tolist()
-days = pivot.columns.tolist()
+end_date = df["start_date_local"].max().date()
+start_date = end_date - timedelta(weeks=5)
+
+calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date, freq="D")})
+calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
+calendar_df["Day"] = calendar_df["Date"].dt.day_name()
+calendar_df["Week"] = calendar_df["Date"].apply(lambda d: f"{(d - timedelta(days=d.weekday())).strftime('%d %b')} - {(d + timedelta(days=6 - d.weekday())).strftime('%d %b')}")
+
+pivot = calendar_df.pivot(index="Week", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
+days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+pivot = pivot[days_order]
 
 fig = go.Figure()
+rows = pivot.shape[0]
+cols = pivot.shape[1]
 
-# Add green squares with annotations
-for i, week in enumerate(weeks):
-    for j, day in enumerate(days):
+for i, week in enumerate(pivot.index):
+    for j, day in enumerate(pivot.columns):
         mileage = pivot.loc[week, day]
-        x0 = j
-        x1 = j + 1
-        y0 = rows - i - 1
-        y1 = y0 + 1
+        x0, x1 = j, j + 1
+        y0, y1 = rows - i - 1, rows - i
 
-        # Add rectangle (green square)
         fig.add_shape(
             type="rect",
             x0=x0, y0=y0, x1=x1, y1=y1,
@@ -221,7 +226,6 @@ for i, week in enumerate(weeks):
             fillcolor="#3F9C35"
         )
 
-        # Add text annotation
         fig.add_annotation(
             x=x0 + 0.5,
             y=y0 + 0.5,
@@ -232,16 +236,15 @@ for i, week in enumerate(weeks):
             yanchor="middle"
         )
 
-# Axis config
 fig.update_xaxes(
     tickvals=[i + 0.5 for i in range(cols)],
-    ticktext=days,
+    ticktext=pivot.columns,
     showgrid=False,
     zeroline=False
 )
 fig.update_yaxes(
     tickvals=[i + 0.5 for i in range(rows)],
-    ticktext=weeks[::-1],  # reverse so most recent week is on top
+    ticktext=pivot.index[::-1],
     showgrid=False,
     zeroline=False
 )
@@ -250,15 +253,14 @@ fig.update_layout(
     title="📆 Last 5 Weeks - Daily Mileage",
     xaxis=dict(showline=False, showticklabels=True),
     yaxis=dict(showline=False, showticklabels=True),
-    width=700,
+    width=800,
     height=rows * 40 + 100,
-    margin=dict(t=60, l=60, r=30, b=30),
+    margin=dict(t=60, l=80, r=30, b=30),
     plot_bgcolor="white",
     paper_bgcolor="white"
 )
 
 st.plotly_chart(fig, use_container_width=False)
-
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
