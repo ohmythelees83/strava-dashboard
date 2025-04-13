@@ -197,37 +197,33 @@ with st.expander("✍️ Update My Goals"):
 daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
 
-# Convert to datetime64[ns] to match merge key
+# Ensure datetime type
 daily_mileage["Date"] = pd.to_datetime(daily_mileage["Date"])
 
+# Build full date range
 end_date = df["start_date_local"].max().date()
 start_date = end_date - timedelta(weeks=5)
-
 calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date, freq="D")})
-calendar_df["Week"] = calendar_df["Date"].dt.isocalendar().week
-calendar_df["Weekday"] = calendar_df["Date"].dt.weekday
+
+# Add week start and end to create week labels
+calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
+calendar_df["Week End"] = calendar_df["Week Start"] + pd.Timedelta(days=6)
+calendar_df["Week Label"] = calendar_df["Week Start"].dt.day.astype(str) + "-" + \
+                            calendar_df["Week End"].dt.strftime("%d %b")
+
+# Add weekday name (Mon–Sun)
+calendar_df["Weekday"] = calendar_df["Date"].dt.strftime("%A")
+
+# Merge in mileage
 calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
 
+# Pivot so each row is a week and columns are days (Mon–Sun)
+pivot = calendar_df.pivot(index="Week Label", columns="Weekday", values="Miles")
 
-pivot = calendar_df.pivot(index="Weekday", columns="Week", values="Miles").sort_index(ascending=False)
+# Optional: ensure day order across columns
+weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+pivot = pivot[weekday_order]  # left to right
 
-fig = go.Figure(data=go.Heatmap(
-    z=pivot.values,
-    x=pivot.columns,
-    y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
-    colorscale="Greens",
-    hovertemplate="Week %{x}<br>%{y}: %{z:.2f} miles<extra></extra>"
-))
-
-fig.update_layout(
-    title="📆 Last 5 Weeks - Daily Mileage",
-    xaxis_title="Week Number",
-    yaxis_title="Day",
-    margin=dict(t=50, l=40, r=40, b=40),
-    height=300
-)
-
-st.plotly_chart(fig, use_container_width=True)
 
 # --- WEEKLY MILEAGE CHART (Plotly) ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
