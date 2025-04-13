@@ -199,5 +199,13 @@ st.plotly_chart(fig, use_container_width=True)
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
+
 df["start_date_local"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
-st.dataframe(df[["name", "start_date_local", "distance_miles", "moving_time", "pace"]])
+
+# Reset the index to be 1-based and rename it to "#"
+df_display = df[["name", "start_date_local", "distance_miles", "moving_time", "pace"]].copy()
+df_display.index = df_display.index + 1
+df_display.index.name = "#"
+
+st.dataframe(df_display)
+
