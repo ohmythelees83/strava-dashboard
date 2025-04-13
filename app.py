@@ -164,7 +164,7 @@ st.markdown(
 )
 
 # --- GOALS SECTION ---
-st.subheader("🎯 My Goals")
+st.subheader("🎯 My Long Term Goal: Place Top Ten in a Centurion 50 mile Ultra within the next 5 years.")
 
 # Connect to Google Sheet to persist goals
 credentials = service_account.Credentials.from_service_account_info(
@@ -186,7 +186,7 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
-st.markdown("#### 📌 Current Goals")
+st.markdown("#### 📌 Short-Term Goals to achieve long term goal)
 for goal in current_goals:
     st.markdown(f"- {goal}")
 
