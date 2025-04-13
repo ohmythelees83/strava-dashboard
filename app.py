@@ -190,6 +190,51 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
+# Daily mileage summary heatmap
+daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
+daily_mileage.columns = ["Date", "Miles"]
+
+# Limit to last 5 weeks
+end_date = df["start_date_local"].max().date()
+start_date = end_date - timedelta(weeks=5)
+filtered = daily_mileage[(daily_mileage["Date"] >= start_date) & (daily_mileage["Date"] <= end_date)]
+
+# Create an interactive heatmap calendar
+import plotly.graph_objects as go
+
+# Create full date range and merge to ensure all days are represented
+all_days = pd.date_range(start=start_date, end=end_date, freq="D")
+calendar_df = pd.DataFrame({"Date": all_days})
+calendar_df["Week"] = calendar_df["Date"].dt.isocalendar().week
+calendar_df["Weekday"] = calendar_df["Date"].dt.weekday
+calendar_df = calendar_df.merge(filtered, on="Date", how="left").fillna(0)
+
+# Pivot for heatmap
+pivot = calendar_df.pivot(index="Weekday", columns="Week", values="Miles")
+pivot = pivot.sort_index(ascending=False)
+
+# Plot
+fig = go.Figure(data=go.Heatmap(
+    z=pivot.values,
+    x=pivot.columns,
+    y=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][::-1],
+    colorscale="Greens",
+    hoverongaps=False,
+    hovertemplate="Week %{x}<br>%{y}: %{z:.2f} miles<extra></extra>"
+))
+
+fig.update_layout(
+    title="📆 Last 5 Weeks - Daily Mileage",
+    xaxis_title="Week Number",
+    yaxis_title="Day",
+    margin=dict(t=50, l=40, r=40, b=40),
+    height=300
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
+
 
 # --- WEEKLY MILEAGE CHART (Plotly) ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
