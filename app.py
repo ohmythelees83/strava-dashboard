@@ -9,6 +9,7 @@ import math
 import plotly.express as px
 from weight_tracker import run_weight_tracker
 import operator
+import gspread
 
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 
