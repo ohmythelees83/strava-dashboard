@@ -210,57 +210,66 @@ days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 pivot = pivot[days_order]
 
 fig = go.Figure()
-rows = pivot.shape[0]
-cols = pivot.shape[1]
+cell_width, cell_height = 1, 1
 
-for i, week in enumerate(pivot.index):
-    for j, day in enumerate(pivot.columns):
-        mileage = pivot.loc[week, day]
-        x0, x1 = j, j + 1
-        y0, y1 = rows - i - 1, rows - i
+for i, week in enumerate(weeks):
+    for j, day in enumerate(days):
+        miles = pivot.loc[week, day]
+        x0, x1 = j, j + cell_width
+        y0, y1 = -i, -i + cell_height
 
-        fig.add_shape(
-            type="rect",
-            x0=x0, y0=y0, x1=x1, y1=y1,
-            line=dict(width=1, color="white"),
-            fillcolor="#3F9C35"
-        )
+        if miles > 0:
+            fig.add_shape(
+                type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
+                fillcolor="#3F9C35", line=dict(width=1, color="white")
+            )
+            fig.add_annotation(
+                x=x0 + 0.5, y=y0 + 0.5,
+                text=f"<b>{miles:.2f}</b>",
+                showarrow=False, font=dict(color="white", size=14),
+                xanchor="center", yanchor="middle"
+            )
+        else:
+            fig.add_shape(
+                type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
+                fillcolor="white", line=dict(width=1, color="#ccc")
+            )
+            fig.add_annotation(
+                x=x0 + 0.5, y=y0 + 0.5,
+                text="REST", showarrow=False,
+                font=dict(color="#888", size=12),
+                xanchor="center", yanchor="middle"
+            )
 
-        fig.add_annotation(
-            x=x0 + 0.5,
-            y=y0 + 0.5,
-            text=f"{mileage:.1f}",
-            showarrow=False,
-            font=dict(color="white", size=12),
-            xanchor="center",
-            yanchor="middle"
-        )
+    stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
+    label = f"<b>{week}</b><br>Total Miles: {int(stats.Total_Miles)}<br>Total Runs: {int(stats.Total_Runs)}"
+    fig.add_annotation(
+        x=-0.5, y=y0 + 0.5, text=label, showarrow=False,
+        font=dict(size=13, color="black"), align="right",
+        xanchor="right", yanchor="middle"
+    )
 
 fig.update_xaxes(
-    tickvals=[i + 0.5 for i in range(cols)],
-    ticktext=pivot.columns,
-    showgrid=False,
-    zeroline=False
+    tickvals=[i + 0.5 for i in range(len(days))],
+    ticktext=days,
+    showgrid=False, zeroline=False,
+    tickfont=dict(size=14, color="black")
 )
-fig.update_yaxes(
-    tickvals=[i + 0.5 for i in range(rows)],
-    ticktext=pivot.index[::-1],
-    showgrid=False,
-    zeroline=False
-)
+fig.update_yaxes(visible=False)
 
 fig.update_layout(
-    title="📆 Last 5 Weeks - Daily Mileage",
-    xaxis=dict(showline=False, showticklabels=True),
-    yaxis=dict(showline=False, showticklabels=True),
-    width=800,
-    height=rows * 40 + 100,
-    margin=dict(t=60, l=80, r=30, b=30),
+    title="\U0001F4C5 Last 5 Weeks – Daily Mileage Calendar",
+    xaxis=dict(showline=False),
+    yaxis=dict(showticklabels=False),
+    width=1600,
+    height=len(weeks) * 70 + 100,
+    margin=dict(t=60, l=220, r=30, b=30),
     plot_bgcolor="white",
     paper_bgcolor="white"
 )
 
-st.plotly_chart(fig, use_container_width=False)
+st.plotly_chart(fig, use_container_width=True)
+
 
 # --- RAW DATA ---
 st.subheader("\U0001F4DD Recent Runs")
