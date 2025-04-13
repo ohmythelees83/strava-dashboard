@@ -186,7 +186,7 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
-st.markdown("#### 📌 Short-Term Goals to achieve long term goal)
+st.markdown("📌 Short-Term Goals to achieve long term goal)
 for goal in current_goals:
     st.markdown(f"- {goal}")
 
