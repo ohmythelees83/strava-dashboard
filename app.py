@@ -10,6 +10,7 @@ import plotly.express as px
 from weight_tracker import run_weight_tracker
 import operator
 import gspread
+from google.oauth2 import service_account
 
 st.title("\U0001F3C3 Live Strava Mileage Dashboard")
 
