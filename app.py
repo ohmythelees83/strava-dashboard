@@ -207,7 +207,7 @@ calendar_df["Week"] = calendar_df["Date"].apply(lambda d: f"{(d - timedelta(days
 calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
 calendar_df["Week Label"] = calendar_df["Week Start"].dt.strftime("%-d %b") + " - " + (calendar_df["Week Start"] + pd.Timedelta(days=6)).dt.strftime("%-d %b")
 
-pivot = calendar_df.pivot(index="Week", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
+pivot = calendar_df.pivot(index="Week Label", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 pivot = pivot[days_order]
 weeks = pivot.index.tolist()
