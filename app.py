@@ -193,6 +193,7 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
+# --- DAILY MILEAGE HEATMAP ---
 import plotly.graph_objects as go
 
 # Get dimensions
@@ -257,63 +258,6 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=False)
-
-
-
-# --- WEEKLY MILEAGE CHART (Plotly) ---
-st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
-weekly_mileage_trimmed = weekly_mileage.tail(52)
-fig = px.line(
-    weekly_mileage_trimmed,
-    x="Week Starting",
-    y="Total Miles",
-    markers=True,
-    title="Weekly Running Mileage",
-    labels={"Total Miles": "Miles"},
-    hover_data={"Total Miles": True, "Week Starting": True}
-)
-
-fig.add_hline(
-    y=suggested_mileage,
-    line_dash="dash",
-    line_color="green",
-    annotation_text=f"Next Week Target: {suggested_mileage}mi",
-    annotation_position="top left"
-)
-
-fig.add_hline(
-    y=20,
-    line_dash="dot",
-    line_color="red",
-    annotation_text="Static 20mi Goal",
-    annotation_position="top right"
-)
-
-fig.update_layout(
-    xaxis_title="Week Starting",
-    yaxis_title="Total Miles",
-    showlegend=False
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-fig = go.Figure(data=go.Heatmap(
-    z=pivot.values,
-    x=pivot.columns,
-    y=pivot.index,
-    colorscale="Greens",
-    hovertemplate="%{y} %{x}: %{z:.2f} miles<extra></extra>"
-))
-
-fig.update_layout(
-    title="📆 Last 5 Weeks - Daily Mileage",
-    xaxis_title="Day of Week",
-    yaxis_title="Week",
-    margin=dict(t=50, l=50, r=50, b=50),
-    height=400
-)
-
-st.plotly_chart(fig, use_container_width=True)
 
 
 # --- RAW DATA ---
