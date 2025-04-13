@@ -179,6 +179,10 @@ except:
     sheet = gc.open("WeightTracker").add_worksheet(title="Goals", rows="100", cols="1")
     current_goals = []
 
+st.markdown("📌 Short-Term Goals to achieve long term goal")
+for goal in current_goals:
+    st.markdown(f"- {goal}")
+
 with st.expander("✍️ Update My Goals"):
     new_goals_input = st.text_area("Update your goals (one per line):", value="\n".join(current_goals), height=150)
     if st.button("Save Goals"):
@@ -186,9 +190,6 @@ with st.expander("✍️ Update My Goals"):
         sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
         st.success("Goals updated!")
 
-st.markdown("📌 Short-Term Goals to achieve long term goal")
-for goal in current_goals:
-    st.markdown(f"- {goal}")
 
 # --- WEEKLY MILEAGE CHART (Plotly) ---
 st.subheader("\U0001F4C8 Weekly Mileage Chart (Interactive)")
