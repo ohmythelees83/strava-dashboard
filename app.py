@@ -73,10 +73,6 @@ df["formatted_date"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
 df["week_start"] = df["start_date_local"].dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
 
-# Ensure clean datetime for merge later
-df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
-
-
 def seconds_to_hhmmss(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -132,67 +128,6 @@ with col1:
 with col2:
     st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
 
-# --- SMART RECOMMENDATION METRICS ---
-this_week_total_miles = this_week_runs["distance_miles"].sum()
-remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
-percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
-above_avg_pct = ((this_week_total_miles - avg_mileage) / avg_mileage) * 100 if avg_mileage else 0
-
-if above_avg_pct > 30:
-    card_color = "#ffcccc"
-    emoji = "🔴"
-elif above_avg_pct > 20:
-    card_color = "#d4edda"
-    emoji = "🟢"
-else:
-    card_color = "#f8f9fa"
-    emoji = "⚪"
-
-st.markdown(
-    f"""
-    <div style="background-color: {card_color}; padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px;">
-        <h4 style="margin-top: 0;">{emoji} Weekly Progress Summary</h4>
-        <ul style="list-style: none; padding-left: 0; font-size: 16px;">
-            <li><strong>4-Week Avg:</strong> {avg_mileage:.2f} mi</li>
-            <li><strong>Target Mileage:</strong> {suggested_mileage:.2f} mi</li>
-            <li><strong>Total This Week:</strong> {this_week_total_miles:.2f} mi</li>
-            <li><strong>Remaining:</strong> {remaining_miles:.2f} mi</li>
-            <li><strong>Progress:</strong> {percent_complete:.0f}%</li>
-        </ul>
-        <div style="margin-top: 10px;">
-            <progress value="{percent_complete}" max="100" style="width: 100%; height: 20px;"></progress>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# --- GOALS SECTION ---
-st.subheader("🎯 My Long Term Goal: Place Top Ten in a Centurion 50 mile Ultra within the next 5 years.")
-
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["google_sheets"],
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-)
-gc = gspread.authorize(credentials)
-try:
-    sheet = gc.open("WeightTracker").worksheet("Goals")
-    current_goals = sheet.col_values(1)
-except:
-    sheet = gc.open("WeightTracker").add_worksheet(title="Goals", rows="100", cols="1")
-    current_goals = []
-
-st.markdown("📌 Short-Term Goals to achieve long term goal")
-for goal in current_goals:
-    st.markdown(f"- {goal}")
-
-with st.expander("✍️ Update My Goals"):
-    new_goals_input = st.text_area("Update your goals (one per line):", value="\n".join(current_goals), height=150)
-    if st.button("Save Goals"):
-        sheet.clear()
-        sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
-        st.success("Goals updated!")
-
 # --- DAILY MILEAGE TABLE CALENDAR ---
 daily_mileage = df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
@@ -201,61 +136,72 @@ end_date = df["start_date_local"].max().date()
 start_date = end_date - timedelta(weeks=5)
 
 calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date, freq="D")})
-calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
+calendar_df["Miles"] = calendar_df["Date"].map(daily_mileage.set_index("Date")["Miles"])
+calendar_df["Miles"] = calendar_df["Miles"].fillna(0).round(2)
 calendar_df["Day"] = calendar_df["Date"].dt.day_name()
-calendar_df["Week"] = calendar_df["Date"].apply(lambda d: f"{(d - timedelta(days=d.weekday())).strftime('%d %b')} - {(d + timedelta(days=6 - d.weekday())).strftime('%d %b')}")
+calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
+calendar_df["Week Label"] = calendar_df["Week Start"].dt.strftime("%-d %b") + " - " + (calendar_df["Week Start"] + pd.Timedelta(days=6)).dt.strftime("%-d %b")
 
-pivot = calendar_df.pivot(index="Week", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
+weekly_stats = calendar_df.groupby("Week Label").agg(
+    Total_Miles=("Miles", "sum"),
+    Total_Runs=("Miles", lambda x: (x > 0).sum())
+).reset_index()
+
+pivot = calendar_df.pivot(index="Week Label", columns="Day", values="Miles").fillna(0)
 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 pivot = pivot[days_order]
+weeks = pivot.index.tolist()
+days = pivot.columns.tolist()
 
 fig = go.Figure()
-rows = pivot.shape[0]
-cols = pivot.shape[1]
+cell_width, cell_height = 1, 1
 
-for i, week in enumerate(pivot.index):
-    for j, day in enumerate(pivot.columns):
-        mileage = pivot.loc[week, day]
-        x0, x1 = j, j + 1
-        y0, y1 = rows - i - 1, rows - i
+for i, week in enumerate(weeks):
+    for j, day in enumerate(days):
+        miles = pivot.loc[week, day]
+        x0, x1 = j, j + cell_width
+        y0, y1 = -i, -i + cell_height
 
-        fig.add_shape(
-            type="rect",
-            x0=x0, y0=y0, x1=x1, y1=y1,
-            line=dict(width=1, color="white"),
-            fillcolor="#3F9C35"
-        )
+        if miles > 0:
+            fig.add_shape(
+                type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
+                fillcolor="#3F9C35", line=dict(width=1, color="white")
+            )
+            fig.add_annotation(
+                x=x0 + 0.5, y=y0 + 0.5,
+                text=f"<b>{miles:.2f}</b>",
+                showarrow=False, font=dict(color="white", size=14),
+                xanchor="center", yanchor="middle"
+            )
+        else:
+            fig.add_annotation(
+                x=x0 + 0.5, y=y0 + 0.5,
+                text="REST", showarrow=False,
+                font=dict(color="gray", size=12),
+                xanchor="center", yanchor="middle"
+            )
 
-        fig.add_annotation(
-            x=x0 + 0.5,
-            y=y0 + 0.5,
-            text=f"{mileage:.1f}",
-            showarrow=False,
-            font=dict(color="white", size=12),
-            xanchor="center",
-            yanchor="middle"
-        )
+    stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
+    label = f"{week}\nTotal Miles: {int(stats.Total_Miles)}\nTotal runs: {int(stats.Total_Runs)}"
+    fig.add_annotation(
+        x=-0.6, y=y0 + 0.5, text=label, showarrow=False,
+        font=dict(size=12), align="right", xanchor="right", yanchor="middle"
+    )
 
 fig.update_xaxes(
-    tickvals=[i + 0.5 for i in range(cols)],
-    ticktext=pivot.columns,
-    showgrid=False,
-    zeroline=False
+    tickvals=[i + 0.5 for i in range(len(days))],
+    ticktext=days,
+    showgrid=False, zeroline=False
 )
-fig.update_yaxes(
-    tickvals=[i + 0.5 for i in range(rows)],
-    ticktext=pivot.index[::-1],
-    showgrid=False,
-    zeroline=False
-)
+fig.update_yaxes(visible=False)
 
 fig.update_layout(
-    title="📆 Last 5 Weeks - Daily Mileage",
-    xaxis=dict(showline=False, showticklabels=True),
-    yaxis=dict(showline=False, showticklabels=True),
-    width=800,
-    height=rows * 40 + 100,
-    margin=dict(t=60, l=80, r=30, b=30),
+    title="\U0001F4C5 Last 5 Weeks – Daily Mileage Calendar",
+    xaxis=dict(showline=False),
+    yaxis=dict(showticklabels=False),
+    width=1000,
+    height=len(weeks) * 70 + 100,
+    margin=dict(t=60, l=150, r=30, b=30),
     plot_bgcolor="white",
     paper_bgcolor="white"
 )
