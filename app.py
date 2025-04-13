@@ -204,6 +204,8 @@ calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date
 calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
 calendar_df["Day"] = calendar_df["Date"].dt.day_name()
 calendar_df["Week"] = calendar_df["Date"].apply(lambda d: f"{(d - timedelta(days=d.weekday())).strftime('%d %b')} - {(d + timedelta(days=6 - d.weekday())).strftime('%d %b')}")
+calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
+calendar_df["Week Label"] = calendar_df["Week Start"].dt.strftime("%-d %b") + " - " + (calendar_df["Week Start"] + pd.Timedelta(days=6)).dt.strftime("%-d %b")
 
 pivot = calendar_df.pivot(index="Week", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
