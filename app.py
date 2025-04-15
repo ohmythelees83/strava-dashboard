@@ -197,22 +197,29 @@ with st.expander("✍️ Update My Goals"):
 daily_mileage = df.groupby(df["start_date_local"].dt.normalize())["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
 
+# 1. Create a date range for the last 5 weeks
 end_date = df["start_date_local"].max().date()
 start_date = end_date - timedelta(weeks=5)
-
-calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date, freq="D")})
-calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left").fillna(0)
+calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date)})
+calendar_df["Miles"] = calendar_df["Date"].map(df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum())
+calendar_df["Miles"] = calendar_df["Miles"].fillna(0).round(2)
 calendar_df["Day"] = calendar_df["Date"].dt.day_name()
-calendar_df["Week"] = calendar_df["Date"].apply(lambda d: f"{(d - timedelta(days=d.weekday())).strftime('%d %b')} - {(d + timedelta(days=6 - d.weekday())).strftime('%d %b')}")
 calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
 calendar_df["Week Label"] = calendar_df["Week Start"].dt.strftime("%-d %b") + " - " + (calendar_df["Week Start"] + pd.Timedelta(days=6)).dt.strftime("%-d %b")
 
-pivot = calendar_df.pivot(index="Week Label", columns="Day", values="Miles").fillna(0).sort_index(ascending=False)
-days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-pivot = pivot[days_order]
+# 2. Get weekly stats
+weekly_stats = calendar_df.groupby("Week Label").agg(
+    Total_Miles=("Miles", "sum"),
+    Total_Runs=("Miles", lambda x: (x > 0).sum())
+).reset_index()
+
+# 3. Create pivot for layout
+pivot = calendar_df.pivot(index="Week Label", columns="Day", values="Miles")
+pivot = pivot[["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]]  # Ensure order
 weeks = pivot.index.tolist()
 days = pivot.columns.tolist()
 
+# 4. Plot
 fig = go.Figure()
 cell_width, cell_height = 1, 1
 
@@ -223,6 +230,7 @@ for i, week in enumerate(weeks):
         y0, y1 = -i, -i + cell_height
 
         if miles > 0:
+            # Green square + text
             fig.add_shape(
                 type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
                 fillcolor="#3F9C35", line=dict(width=1, color="white")
@@ -234,52 +242,41 @@ for i, week in enumerate(weeks):
                 xanchor="center", yanchor="middle"
             )
         else:
-            fig.add_shape(
-                type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
-                fillcolor="white", line=dict(width=1, color="#ccc")
-            )
             fig.add_annotation(
                 x=x0 + 0.5, y=y0 + 0.5,
                 text="REST", showarrow=False,
-                font=dict(color="#888", size=12),
+                font=dict(color="gray", size=12),
                 xanchor="center", yanchor="middle"
             )
 
-# Create weekly summary to use in row labels
-weekly_stats = calendar_df.groupby("Week Label").agg(
-    Total_Miles=("Miles", "sum"),
-    Total_Runs=("Miles", lambda x: (x > 0).sum())
-).reset_index()
-
-
-stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
-label = f"<b>{week}</b><br>Total Miles: {int(stats.Total_Miles)}<br>Total Runs: {int(stats.Total_Runs)}"
-fig.add_annotation(
-    x=-0.5, y=y0 + 0.5, text=label, showarrow=False,
-    font=dict(size=13, color="black"), align="right",
-    xanchor="right", yanchor="middle"
-)
+    # Left-side text block
+    stats = weekly_stats[weekly_stats["Week Label"] == week].iloc[0]
+    label = f"{week}\nTotal Miles: {int(stats.Total_Miles)}\nTotal runs: {int(stats.Total_Runs)}"
+    fig.add_annotation(
+        x=-0.6, y=y0 + 0.5, text=label, showarrow=False,
+        font=dict(size=12), align="right", xanchor="right", yanchor="middle"
+    )
 
 fig.update_xaxes(
     tickvals=[i + 0.5 for i in range(len(days))],
     ticktext=days,
-    showgrid=False, zeroline=False,
-    tickfont=dict(size=14, color="black")
+    showgrid=False, zeroline=False
 )
 fig.update_yaxes(visible=False)
 
 fig.update_layout(
-    title="\U0001F4C5 Last 5 Weeks – Daily Mileage Calendar",
+    title="📆 Last 5 Weeks – Daily Mileage Calendar",
     xaxis=dict(showline=False),
     yaxis=dict(showticklabels=False),
-    width=1600,
+    width=1000,
     height=len(weeks) * 70 + 100,
-    margin=dict(t=60, l=220, r=30, b=30),
+    margin=dict(t=60, l=150, r=30, b=30),
     plot_bgcolor="white",
     paper_bgcolor="white"
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=False)
+
 
 
 # --- RAW DATA ---
