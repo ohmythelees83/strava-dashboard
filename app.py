@@ -197,45 +197,41 @@ with st.expander("✍️ Update My Goals"):
 daily_mileage = df.groupby(df["start_date_local"].dt.normalize())["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
 
+# 1. Create a date range for the last 5 weeks
 end_date = df["start_date_local"].max().date()
 start_date = end_date - timedelta(weeks=5)
 calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date)})
-
-# FIX 1: convert both to datetime for a proper merge
-daily_mileage["Date"] = pd.to_datetime(daily_mileage["Date"])
-calendar_df["Date"] = pd.to_datetime(calendar_df["Date"])
-
-# Merge to include all dates
-calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left")
+calendar_df["Miles"] = calendar_df["Date"].map(df.groupby(df["start_date_local"].dt.date)["distance_miles"].sum())
 calendar_df["Miles"] = calendar_df["Miles"].fillna(0).round(2)
-
 calendar_df["Day"] = calendar_df["Date"].dt.day_name()
 calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
 calendar_df["Week Label"] = calendar_df["Week Start"].dt.strftime("%-d %b") + " - " + (calendar_df["Week Start"] + pd.Timedelta(days=6)).dt.strftime("%-d %b")
 
-# Weekly stats for labels
+# 2. Get weekly stats
 weekly_stats = calendar_df.groupby("Week Label").agg(
     Total_Miles=("Miles", "sum"),
     Total_Runs=("Miles", lambda x: (x > 0).sum())
 ).reset_index()
 
-# Pivot table for mileage display
+# 3. Create pivot for layout
 pivot = calendar_df.pivot(index="Week Label", columns="Day", values="Miles").fillna(0)
 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 pivot = pivot[days_order]
-
-# Draw calendar
-fig = go.Figure()
 weeks = pivot.index.tolist()
 days = pivot.columns.tolist()
+
+# 4. Plot
+fig = go.Figure()
+cell_width, cell_height = 1, 1
 
 for i, week in enumerate(weeks):
     for j, day in enumerate(days):
         miles = pivot.loc[week, day]
-        x0, x1 = j, j + 1
-        y0, y1 = -i, -i + 1
+        x0, x1 = j, j + cell_width
+        y0, y1 = -i, -i + cell_height
 
         if miles > 0:
+            # Green square + text
             fig.add_shape(
                 type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
                 fillcolor="#3F9C35", line=dict(width=1, color="white")
@@ -247,18 +243,19 @@ for i, week in enumerate(weeks):
                 xanchor="center", yanchor="middle"
             )
         else:
+            # White REST square
             fig.add_shape(
                 type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
-                fillcolor="white", line=dict(width=1, color="#ccc")
+                fillcolor="white", line=dict(width=1, color="#ddd")
             )
             fig.add_annotation(
                 x=x0 + 0.5, y=y0 + 0.5,
                 text="REST", showarrow=False,
-                font=dict(color="gray", size=12),
+                font=dict(color="#888", size=12),
                 xanchor="center", yanchor="middle"
             )
 
-    # Add weekly stats as left-hand labels
+    # Left-side label for week
     stats = weekly_stats[weekly_stats["Week Label"] == week]
     if not stats.empty:
         s = stats.iloc[0]
@@ -269,7 +266,6 @@ for i, week in enumerate(weeks):
             xanchor="right", yanchor="middle"
         )
 
-# Axes
 fig.update_xaxes(
     tickvals=[i + 0.5 for i in range(len(days))],
     ticktext=days,
@@ -279,13 +275,12 @@ fig.update_xaxes(
 fig.update_yaxes(visible=False)
 
 fig.update_layout(
-    title="\U0001F4C5 <b>Last 5 Weeks – Daily Mileage Calendar</b>",
-    title_font=dict(size=20, color="black"),
+    title="📆 Last 5 Weeks – Daily Mileage Calendar",
     xaxis=dict(showline=False),
     yaxis=dict(showticklabels=False),
     width=1600,
-    height=len(weeks) * 80 + 100,
-    margin=dict(t=80, l=240, r=30, b=30),
+    height=len(weeks) * 70 + 100,
+    margin=dict(t=60, l=220, r=30, b=30),
     plot_bgcolor="white",
     paper_bgcolor="white"
 )
