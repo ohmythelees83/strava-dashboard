@@ -9,7 +9,7 @@ import math
 import plotly.express as px
 from weight_tracker import run_weight_tracker
 import operator
-gspread
+import gspread
 from google.oauth2 import service_account
 import plotly.graph_objects as go
 
@@ -69,45 +69,171 @@ df = fetch_strava_data(access_token)
 
 # --- CLEAN + FORMAT ---
 df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce').dt.tz_localize(None)
+df["formatted_date"] = df["start_date_local"].dt.strftime("%A %d %Y, %H:%M:%S")
+df["week_start"] = df["start_date_local"].dt.to_period("W").apply(lambda r: r.start_time)
 df["distance_miles"] = (df["distance"] / 1609.34).round(2)
 
-# --- DAILY MILEAGE TABLE CALENDAR ---
-end_date = df["start_date_local"].max().normalize()
-start_date = end_date - timedelta(weeks=5)
-date_range = pd.date_range(start=start_date, end=end_date)
+# Ensure clean datetime for merge later
+df["start_date_local"] = pd.to_datetime(df["start_date_local"], errors='coerce')
 
-# Group by exact date only
+
+def seconds_to_hhmmss(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    return f"{hours:02}:{minutes:02}:{secs:02}"
+
+def speed_to_pace_mile(speed_mps):
+    if speed_mps == 0:
+        return "00:00"
+    pace_seconds = 1609.34 / speed_mps
+    return f"{int(pace_seconds // 60):02}:{int(pace_seconds % 60):02}"
+
+df["moving_time"] = df["moving_time"].apply(seconds_to_hhmmss)
+df["pace"] = df["average_speed"].apply(speed_to_pace_mile)
+
+# --- WEEKLY MILEAGE SUMMARY ---
+weekly_mileage = df.groupby("week_start")["distance_miles"].sum().reset_index()
+weekly_mileage.columns = ["Week Starting", "Total Miles"]
+weekly_mileage["Number of Runs"] = df.groupby("week_start").size().values
+
+# --- DATETIME SETUP ---
+today = datetime.now(dt_timezone.utc).replace(tzinfo=None)
+start_of_this_week = (today - timedelta(days=today.weekday())).replace(tzinfo=None)
+start_of_last_week = (start_of_this_week - timedelta(days=7)).replace(tzinfo=None)
+end_of_last_week = (start_of_this_week - timedelta(seconds=1)).replace(tzinfo=None)
+
+# --- SMART WEEKLY MILEAGE RECOMMENDATION ---
+weekly_mileage["Week Starting"] = pd.to_datetime(weekly_mileage["Week Starting"])
+start_of_this_week_naive = pd.Timestamp(start_of_this_week).tz_localize(None)
+completed_weeks = weekly_mileage[weekly_mileage["Week Starting"] < start_of_this_week_naive]
+last_4_weeks = completed_weeks.sort_values("Week Starting").tail(4)
+
+if not last_4_weeks.empty:
+    avg_mileage = last_4_weeks["Total Miles"].mean()
+    suggested_mileage = math.ceil(avg_mileage * 1.15)
+else:
+    avg_mileage = 0
+    suggested_mileage = 0
+
+# --- THIS WEEK vs LAST WEEK DAYS ---
+last_week_runs = df[(df["start_date_local"] >= start_of_last_week) & (df["start_date_local"] <= end_of_last_week)]
+this_week_runs = df[(df["start_date_local"] >= start_of_this_week) & (df["start_date_local"] <= today)]
+
+days_this_week = this_week_runs["start_date_local"].dt.date.nunique()
+days_last_week = last_week_runs["start_date_local"].dt.date.nunique()
+
+# --- DISPLAY SECTIONS ---
+st.subheader("\U0001F4C5 Weekly Consistency Tracker")
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(label="\U0001F3C3‍♂️ Days Run This Week", value=f"{days_this_week} / 7")
+with col2:
+    st.metric(label="\U0001F4C9 Days Run Last Week", value=f"{days_last_week} / 7")
+
+# --- SMART RECOMMENDATION METRICS ---
+this_week_total_miles = this_week_runs["distance_miles"].sum()
+remaining_miles = max(suggested_mileage - this_week_total_miles, 0)
+percent_complete = min((this_week_total_miles / suggested_mileage) * 100 if suggested_mileage else 0, 100)
+above_avg_pct = ((this_week_total_miles - avg_mileage) / avg_mileage) * 100 if avg_mileage else 0
+
+if above_avg_pct > 30:
+    card_color = "#ffcccc"
+    emoji = "🔴"
+elif above_avg_pct > 20:
+    card_color = "#d4edda"
+    emoji = "🟢"
+else:
+    card_color = "#f8f9fa"
+    emoji = "⚪"
+
+st.markdown(
+    f"""
+    <div style="background-color: {card_color}; padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <h4 style="margin-top: 0;">{emoji} Weekly Progress Summary</h4>
+        <ul style="list-style: none; padding-left: 0; font-size: 16px;">
+            <li><strong>4-Week Avg:</strong> {avg_mileage:.2f} mi</li>
+            <li><strong>Target Mileage:</strong> {suggested_mileage:.2f} mi</li>
+            <li><strong>Total This Week:</strong> {this_week_total_miles:.2f} mi</li>
+            <li><strong>Remaining:</strong> {remaining_miles:.2f} mi</li>
+            <li><strong>Progress:</strong> {percent_complete:.0f}%</li>
+        </ul>
+        <div style="margin-top: 10px;">
+            <progress value="{percent_complete}" max="100" style="width: 100%; height: 20px;"></progress>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- GOALS SECTION ---
+st.subheader("🎯 My Long Term Goal: Place Top Ten in a Centurion 50 mile Ultra within the next 5 years.")
+
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["google_sheets"],
+    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+)
+gc = gspread.authorize(credentials)
+try:
+    sheet = gc.open("WeightTracker").worksheet("Goals")
+    current_goals = sheet.col_values(1)
+except:
+    sheet = gc.open("WeightTracker").add_worksheet(title="Goals", rows="100", cols="1")
+    current_goals = []
+
+st.markdown("📌 Short-Term Goals to achieve long term goal")
+for goal in current_goals:
+    st.markdown(f"- {goal}")
+
+with st.expander("✍️ Update My Goals"):
+    new_goals_input = st.text_area("Update your goals (one per line):", value="\n".join(current_goals), height=150)
+    if st.button("Save Goals"):
+        sheet.clear()
+        sheet.update("A1", [[goal] for goal in new_goals_input.split("\n") if goal.strip()])
+        st.success("Goals updated!")
+
+# --- DAILY MILEAGE TABLE CALENDAR ---
 daily_mileage = df.groupby(df["start_date_local"].dt.normalize())["distance_miles"].sum().reset_index()
 daily_mileage.columns = ["Date", "Miles"]
-daily_mileage["Date"] = pd.to_datetime(daily_mileage["Date"])
 
-calendar_df = pd.DataFrame({"Date": date_range})
+end_date = df["start_date_local"].max().date()
+start_date = end_date - timedelta(weeks=5)
+calendar_df = pd.DataFrame({"Date": pd.date_range(start=start_date, end=end_date)})
+
+# FIX 1: convert both to datetime for a proper merge
+daily_mileage["Date"] = pd.to_datetime(daily_mileage["Date"])
 calendar_df["Date"] = pd.to_datetime(calendar_df["Date"])
+
+# Merge to include all dates
 calendar_df = calendar_df.merge(daily_mileage, on="Date", how="left")
 calendar_df["Miles"] = calendar_df["Miles"].fillna(0).round(2)
+
 calendar_df["Day"] = calendar_df["Date"].dt.day_name()
 calendar_df["Week Start"] = calendar_df["Date"] - pd.to_timedelta(calendar_df["Date"].dt.weekday, unit="D")
 calendar_df["Week Label"] = calendar_df["Week Start"].dt.strftime("%-d %b") + " - " + (calendar_df["Week Start"] + pd.Timedelta(days=6)).dt.strftime("%-d %b")
 
+# Weekly stats for labels
 weekly_stats = calendar_df.groupby("Week Label").agg(
     Total_Miles=("Miles", "sum"),
     Total_Runs=("Miles", lambda x: (x > 0).sum())
 ).reset_index()
 
+# Pivot table for mileage display
 pivot = calendar_df.pivot(index="Week Label", columns="Day", values="Miles").fillna(0)
 days_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 pivot = pivot[days_order]
+
+# Draw calendar
+fig = go.Figure()
 weeks = pivot.index.tolist()
 days = pivot.columns.tolist()
-
-fig = go.Figure()
-cell_width, cell_height = 1, 1
 
 for i, week in enumerate(weeks):
     for j, day in enumerate(days):
         miles = pivot.loc[week, day]
-        x0, x1 = j, j + cell_width
-        y0, y1 = -i, -i + cell_height
+        x0, x1 = j, j + 1
+        y0, y1 = -i, -i + 1
 
         if miles > 0:
             fig.add_shape(
@@ -132,6 +258,7 @@ for i, week in enumerate(weeks):
                 xanchor="center", yanchor="middle"
             )
 
+    # Add weekly stats as left-hand labels
     stats = weekly_stats[weekly_stats["Week Label"] == week]
     if not stats.empty:
         s = stats.iloc[0]
@@ -142,6 +269,7 @@ for i, week in enumerate(weeks):
             xanchor="right", yanchor="middle"
         )
 
+# Axes
 fig.update_xaxes(
     tickvals=[i + 0.5 for i in range(len(days))],
     ticktext=days,
