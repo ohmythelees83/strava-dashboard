@@ -281,7 +281,6 @@ fig.update_layout(
     plot_bgcolor="white",
     paper_bgcolor="white"
 )
-
 st.plotly_chart(fig, use_container_width=True)
 
 
