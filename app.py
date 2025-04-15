@@ -275,7 +275,7 @@ fig.update_layout(
     title="📆 Last 5 Weeks – Daily Mileage Calendar",
     xaxis=dict(showline=False),
     yaxis=dict(showticklabels=False),
-    width=1600,
+    width=900,
     height=len(weeks) * 70 + 100,
     margin=dict(t=60, l=220, r=30, b=30),
     plot_bgcolor="white",
